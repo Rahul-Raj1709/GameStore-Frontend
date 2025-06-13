@@ -1,0 +1,52 @@
+# Dependency directories
+node_modules/
+
+# Production build
+dist/
+build/
+
+# Environment variables
+.env
+.env.*.local
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+*.log
+
+# IDE and editor folders
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS generated files
+*.swp
+*.bak
+
+# Coverage reports
+coverage/
+
+# Optional: if you're using Mac/Linux file system junk
+ehthumbs.db
+Icon?
+Desktop.ini
+
+# Optional: if you're using VSCode inside WSL
+*.code-workspace
+
+# Optional cache folders
+.cache/
+.cache-loader/
+tmp/
+temp/
+
+# Optional: package manager specific
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
