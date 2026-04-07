@@ -2,7 +2,7 @@ import axios from "axios";
 import { authService } from "@/features/auth/api/auth.service";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://localhost:7034/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL || "https://localhost:64039/api",
   headers: {
     "Content-Type": "application/json",
   },
@@ -63,25 +63,30 @@ api.interceptors.response.use(
 
       if (currentToken && currentRefreshToken) {
         try {
-          // Call the refresh endpoint (Returns the raw AuthResponse now)
-          const userData = await authService.refreshToken(
+          // Call the refresh endpoint (ensure this matches your .NET route)
+          const result = await authService.refreshToken(
             currentToken,
             currentRefreshToken,
           );
 
-          const { token, refreshToken } = userData;
+          if (result.isSuccess) {
+            const { token, refreshToken, ...userData } = result.value;
 
-          // Update storage
-          localStorage.setItem("token", token);
-          localStorage.setItem("refreshToken", refreshToken);
-          localStorage.setItem("user", JSON.stringify(userData));
+            // Update storage
+            localStorage.setItem("token", token);
+            localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem(
+              "user",
+              JSON.stringify({ token, refreshToken, ...userData }),
+            );
 
-          // Process queued requests with the new token
-          processQueue(null, token);
+            // Process queued requests with the new token
+            processQueue(null, token);
 
-          // Retry the original request
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return api(originalRequest);
+            // Retry the original request
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          }
         } catch (refreshError) {
           // Refresh failed (e.g., refresh token expired or revoked)
           processQueue(refreshError, null);
