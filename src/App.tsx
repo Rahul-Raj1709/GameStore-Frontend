@@ -9,6 +9,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { GameDetailsPage } from "./features/games/components/GameDetailsPage";
 import { RoleGuard } from "./components/RoleGuard";
 import { Roles } from "./types";
+import { AdminManagement } from "./features/users/components/AdminManagement";
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
@@ -57,7 +58,6 @@ const Navbar = () => {
             </button>
           </>
         ) : (
-          // 2. Added Register Link to the Navbar
           <div className="flex items-center gap-4">
             <Link
               to="/login"
@@ -122,14 +122,7 @@ function AppRoutes() {
 
           {/* SuperAdmin Only Routes */}
           <Route element={<ProtectedRoute allowedRoles={[Roles.SuperAdmin]} />}>
-            <Route
-              path="/admin-management"
-              element={
-                <div className="p-8 text-center text-gray-400">
-                  Admin Management coming soon...
-                </div>
-              }
-            />
+            <Route path="/admin-management" element={<AdminManagement />} />
           </Route>
 
           {/* Customer Only Routes */}
