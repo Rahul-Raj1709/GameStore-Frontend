@@ -10,6 +10,7 @@ import { GameDetailsPage } from "./features/games/components/GameDetailsPage";
 import { RoleGuard } from "./components/RoleGuard";
 import { Roles } from "./types";
 import { AdminManagement } from "./features/users/components/AdminManagement";
+import { AddGamePage } from "./features/games/components/AddGamePage";
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
@@ -82,10 +83,11 @@ function AppRoutes() {
       <Navbar />
       <main className="grow">
         <Routes>
+          {" "}
+          {/* <--- ALL Routes must live inside this opening tag */}
           {/* Public Routes */}
           <Route path="/" element={<GameCatalog />} />
           <Route path="/games/:id" element={<GameDetailsPage />} />
-
           {/* Guest Only (Users who are already logged in shouldn't see these) */}
           <Route
             element={<ProtectedRoute requireAuth={false} redirectTo="/" />}>
@@ -94,22 +96,13 @@ function AppRoutes() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
-
           {/* ---------------- PROTECTED ROUTES ---------------- */}
-
           {/* SuperAdmin & Admin Only Routes */}
           <Route
             element={
               <ProtectedRoute allowedRoles={[Roles.SuperAdmin, Roles.Admin]} />
             }>
-            <Route
-              path="/games/new"
-              element={
-                <div className="p-8 text-center text-gray-400">
-                  Add Game Form coming soon...
-                </div>
-              }
-            />
+            <Route path="/games/new" element={<AddGamePage />} />
             <Route
               path="/games/:id/edit"
               element={
@@ -119,12 +112,10 @@ function AppRoutes() {
               }
             />
           </Route>
-
           {/* SuperAdmin Only Routes */}
           <Route element={<ProtectedRoute allowedRoles={[Roles.SuperAdmin]} />}>
             <Route path="/admin-management" element={<AdminManagement />} />
           </Route>
-
           {/* Customer Only Routes */}
           <Route element={<ProtectedRoute allowedRoles={[Roles.Customer]} />}>
             <Route
@@ -136,7 +127,8 @@ function AppRoutes() {
               }
             />
           </Route>
-        </Routes>
+        </Routes>{" "}
+        {/* <--- ALL Routes must live inside this closing tag */}
       </main>
     </div>
   );

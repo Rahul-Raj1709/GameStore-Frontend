@@ -6,7 +6,6 @@ export interface GameSummary {
   releaseDate: string;
 }
 
-// 1. New Game Details Interface
 export interface GameDetails {
   id: number;
   name: string;
@@ -21,12 +20,25 @@ export interface GameDetails {
   ownerName: string;
 }
 
-// 2. Updated API Params for filtering and sorting
 export interface GetGamesParams {
   page?: number;
   pageSize?: number;
-  search?: string; // Updated from searchTerm based on your URL
+  search?: string;
   genreId?: number;
   sortBy?: string;
   desc?: boolean;
+}
+
+export interface Genre {
+  id: number;
+  name: string;
+}
+
+export interface CreateGamePayload {
+  name: string;
+  description: string;
+  imageUrl: string | null;
+  genreId: number;
+  price: number | null;
+  releaseDate: string; // Format: YYYY-MM-DD
 }
