@@ -2,7 +2,7 @@ import axios from "axios";
 import { authService } from "@/features/auth/api/auth.service";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://localhost:7034/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },

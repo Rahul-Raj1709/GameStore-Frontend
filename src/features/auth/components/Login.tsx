@@ -1,17 +1,25 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
-import { Loader2, Mail, Lock, AlertCircle } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  Lock,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Clock,
+} from "lucide-react";
 
 import { authService } from "../api/auth.service";
 import { useAuth } from "../context/AuthContext";
 import { LoginCredentials } from "../types";
 
-// 1. Zod Validation Schema
+// Zod Validation Schema
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."), // <-- Changed here
+  password: z.string().min(6, "Password must be at least 6 characters."),
 });
 
 export const Login = () => {
@@ -27,23 +35,33 @@ export const Login = () => {
   >({});
   const [apiError, setApiError] = useState<string | null>(null);
 
-  // 2. React Query Mutation
+  const [showPassword, setShowPassword] = useState(false);
+
+  // NEW: State to trigger the Activation Pending screen
+  const [isPendingActivation, setIsPendingActivation] = useState(false);
+
+  // React Query Mutation
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (userData) => {
-      // 200 OK means we have the AuthResponse directly
       setAuthContext(userData);
       navigate("/");
     },
     onError: (error: any) => {
-      // Handle ASP.NET Core ProblemDetails errors
       const problemDetails = error.response?.data;
 
+      // Intercept the specific backend error for Inactive accounts
+      if (
+        problemDetails?.title === "Auth.Inactive" ||
+        problemDetails?.detail?.includes("pending activation")
+      ) {
+        setIsPendingActivation(true);
+        return;
+      }
+
       if (problemDetails?.detail) {
-        // E.g., "Invalid credentials."
         setApiError(problemDetails.detail);
       } else if (problemDetails?.title) {
-        // E.g., "One or more validation errors occurred."
         setApiError(problemDetails.title);
       } else {
         setApiError("An unexpected network error occurred. Please try again.");
@@ -51,19 +69,17 @@ export const Login = () => {
     },
   });
 
-  // 3. Form Handler
+  // Form Handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
     setApiError(null);
 
-    // Validate with Zod before sending to the API
     const validationResult = loginSchema.safeParse(formData);
 
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
       validationResult.error.issues.forEach((issue) => {
-        // Fix: Explicitly convert the path index to a string
         const key = String(issue.path[0]);
         if (key) {
           errors[key] = issue.message;
@@ -73,9 +89,35 @@ export const Login = () => {
       return;
     }
 
-    // Trigger the API call
     loginMutation.mutate(formData);
   };
+
+  // FULL SCREEN: Login Pending Activation Intercept
+  if (isPendingActivation) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
+        <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 border border-gray-800 shadow-2xl text-center">
+          <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-4">
+            Activation Pending
+          </h2>
+          <p className="text-gray-300 mb-8 leading-relaxed">
+            Your administrator account is currently pending activation by a
+            SuperAdmin. You cannot access the system until your account is
+            approved.
+          </p>
+          <button
+            onClick={() => {
+              setIsPendingActivation(false);
+              setFormData({ email: "", password: "" }); // reset form
+            }}
+            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-lg font-medium transition-colors">
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
@@ -129,27 +171,44 @@ export const Login = () => {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
-                type="password"
-                value={formData.password} // <-- Changed here
+                type={showPassword ? "text" : "password"}
+                value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
-                } // <-- Changed here
-                className={`w-full pl-10 pr-4 py-3 bg-gray-950 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
+                }
+                className={`w-full pl-10 pr-12 py-3 bg-gray-950 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
                   validationErrors.password
                     ? "border-red-500"
-                    : "border-gray-800" // <-- Changed here
+                    : "border-gray-800"
                 }`}
                 placeholder="••••••••"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 focus:outline-none">
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
+              </button>
             </div>
-            {validationErrors.password && ( // <-- Changed here
+            {validationErrors.password && (
               <p className="mt-2 text-sm text-red-400">
                 {validationErrors.password}
-              </p> // <-- Changed here
+              </p>
             )}
           </div>
 
-          {/* Submit Button */}
+          <div className="flex justify-end mt-2">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+              Forgot password?
+            </Link>
+          </div>
+
           <button
             type="submit"
             disabled={loginMutation.isPending}
@@ -164,6 +223,15 @@ export const Login = () => {
             )}
           </button>
         </form>
+
+        <div className="text-center mt-4">
+          <p className="text-sm text-gray-400">
+            Don't have an account?{" "}
+            <Link to="/register" className="text-blue-400 hover:underline">
+              Sign up
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

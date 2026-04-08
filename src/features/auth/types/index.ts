@@ -9,5 +9,23 @@ export interface AuthResponse {
 
 export interface LoginCredentials {
   email: string;
-  password: string; // <-- Changed from passwordHash
+  password: string;
+}
+
+export interface RegisterCredentials {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role?: string | null;
+}
+
+export interface ForgotPasswordCredentials {
+  email: string;
+}
+
+export interface ResetPasswordCredentials {
+  email: string;
+  token: string;
+  newPassword: string;
 }
