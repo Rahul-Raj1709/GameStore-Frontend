@@ -42,3 +42,8 @@ export interface CreateGamePayload {
   price: number | null;
   releaseDate: string; // Format: YYYY-MM-DD
 }
+
+export interface CursorPagedGames {
+  data: GameSummary[];
+  nextCursor: string | null;
+}

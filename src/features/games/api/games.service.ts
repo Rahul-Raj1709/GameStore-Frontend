@@ -5,6 +5,7 @@ import {
   GameDetails,
   GetGamesParams,
   CreateGamePayload,
+  CursorPagedGames,
 } from "../types";
 
 export const gamesService = {
@@ -20,8 +21,26 @@ export const gamesService = {
     return response.data;
   },
 
+  getMyGames: async (
+    cursor?: string,
+    pageSize: number = 20,
+  ): Promise<CursorPagedGames> => {
+    const response = await api.get<CursorPagedGames>("/games/my-games", {
+      params: { cursor, pageSize },
+    });
+    return response.data;
+  },
+
   createGame: async (payload: CreateGamePayload): Promise<{ id: number }> => {
     const response = await api.post<{ id: number }>("/games", payload);
     return response.data;
+  },
+
+  updateGame: async (id: number, payload: CreateGamePayload): Promise<void> => {
+    await api.put(`/games/${id}`, payload);
+  },
+
+  deleteGame: async (id: number): Promise<void> => {
+    await api.delete(`/games/${id}`);
   },
 };

@@ -4,13 +4,14 @@ import { Login } from "./features/auth/components/Login";
 import { ForgotPassword } from "./features/auth/components/ForgotPassword";
 import { ResetPassword } from "./features/auth/components/ResetPassword";
 import { Register } from "./features/auth/components/Register";
-import { GameCatalog } from "./features/games/components/GameCatalog";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { GameDetailsPage } from "./features/games/components/GameDetailsPage";
 import { RoleGuard } from "./components/RoleGuard";
 import { Roles } from "./types";
 import { AdminManagement } from "./features/users/components/AdminManagement";
 import { AddGamePage } from "./features/games/components/AddGamePage";
+import { EditGamePage } from "./features/games/components/EditGamePage";
+import { HomePage } from "./pages/HomePage"; // <-- Added HomePage import
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
@@ -83,10 +84,9 @@ function AppRoutes() {
       <Navbar />
       <main className="grow">
         <Routes>
-          {" "}
-          {/* <--- ALL Routes must live inside this opening tag */}
-          {/* Public Routes */}
-          <Route path="/" element={<GameCatalog />} />
+          {/* Public / Dynamic Root Route */}
+          <Route path="/" element={<HomePage />} />{" "}
+          {/* <-- Replaced GameCatalog with HomePage */}
           <Route path="/games/:id" element={<GameDetailsPage />} />
           {/* Guest Only (Users who are already logged in shouldn't see these) */}
           <Route
@@ -103,14 +103,7 @@ function AppRoutes() {
               <ProtectedRoute allowedRoles={[Roles.SuperAdmin, Roles.Admin]} />
             }>
             <Route path="/games/new" element={<AddGamePage />} />
-            <Route
-              path="/games/:id/edit"
-              element={
-                <div className="p-8 text-center text-gray-400">
-                  Edit Game Form coming soon...
-                </div>
-              }
-            />
+            <Route path="/games/:id/edit" element={<EditGamePage />} />
           </Route>
           {/* SuperAdmin Only Routes */}
           <Route element={<ProtectedRoute allowedRoles={[Roles.SuperAdmin]} />}>
@@ -127,8 +120,7 @@ function AppRoutes() {
               }
             />
           </Route>
-        </Routes>{" "}
-        {/* <--- ALL Routes must live inside this closing tag */}
+        </Routes>
       </main>
     </div>
   );

@@ -1,5 +1,6 @@
-import { useParams, Link, useNavigate } from "react-router-dom"; // Add useNavigate
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useGameDetails } from "../api/useGameDetails";
+import { gamesService } from "../api/games.service";
 import {
   ArrowLeft,
   Loader2,
@@ -9,16 +10,34 @@ import {
   Tag,
   Edit,
   Trash2,
-} from "lucide-react"; // Add Edit and Trash2 icons
-import { useGamePermissions } from "@/components/RoleGuard"; // Import the permission hook
+  X,
+} from "lucide-react";
+import { useGamePermissions } from "@/components/RoleGuard";
+import { useState } from "react";
 
 export const GameDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { data: game, isLoading, isError } = useGameDetails(Number(id));
 
-  // Check if the current user has permission to manage THIS specific game
+  // Modal & Loading States
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const { canManage } = useGamePermissions(game?.ownerName);
+
+  const handleDelete = async () => {
+    if (!game) return;
+    setIsDeleting(true);
+    try {
+      await gamesService.deleteGame(game.id);
+      navigate("/");
+    } catch (err) {
+      alert("Failed to delete the game. Please try again.");
+      setIsDeleting(false);
+      setIsDeleteModalOpen(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -50,10 +69,7 @@ export const GameDetailsPage = () => {
       </Link>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
-        {/* Left Column - Image & Actions */}
         <div className="md:col-span-1 space-y-4">
-          {" "}
-          {/* Changed space-y-6 to space-y-4 */}
           <div className="aspect-3/4 w-full bg-gray-900 border border-gray-800 rounded-xl flex items-center justify-center overflow-hidden shadow-2xl">
             {game.imageUrl ? (
               <img
@@ -67,12 +83,13 @@ export const GameDetailsPage = () => {
               </div>
             )}
           </div>
+
           <button className="w-full py-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-bold text-lg transition-colors border border-gray-700 shadow-lg">
             {game.price !== null
               ? `Buy for $${game.price.toFixed(2)}`
               : "Play for Free"}
           </button>
-          {/* Conditional Admin Actions */}
+
           {canManage && (
             <div className="grid grid-cols-2 gap-3 pt-2">
               <button
@@ -80,14 +97,15 @@ export const GameDetailsPage = () => {
                 className="flex items-center justify-center gap-2 py-3 bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 rounded-xl font-medium transition-colors border border-blue-500/30">
                 <Edit className="w-4 h-4" /> Edit
               </button>
-              <button className="flex items-center justify-center gap-2 py-3 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded-xl font-medium transition-colors border border-red-500/30">
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="flex items-center justify-center gap-2 py-3 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded-xl font-medium transition-colors border border-red-500/30">
                 <Trash2 className="w-4 h-4" /> Delete
               </button>
             </div>
           )}
         </div>
 
-        {/* Right Column - Details */}
         <div className="md:col-span-2">
           <div className="flex justify-between items-start mb-4">
             <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
@@ -119,11 +137,54 @@ export const GameDetailsPage = () => {
               About this game
             </h3>
             <p className="text-gray-400 leading-relaxed text-lg">
-              {game.description || "No description provided for this game."}
+              {game.description || "No description provided."}
             </p>
           </div>
         </div>
       </div>
+
+      {/* --- Delete Confirmation Modal --- */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-100 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl scale-in-center">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 bg-red-500/10 rounded-lg">
+                <Trash2 className="w-6 h-6 text-red-500" />
+              </div>
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="text-gray-500 hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <h2 className="text-xl font-bold text-white mb-2">Delete Game?</h2>
+            <p className="text-gray-400 mb-6 leading-relaxed">
+              Are you sure you want to delete{" "}
+              <span className="text-white font-semibold">"{game.name}"</span>?
+              This action is permanent and cannot be undone.
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="flex-1 py-3 bg-gray-800 hover:bg-gray-700 text-white rounded-xl font-semibold transition-colors">
+                Cancel
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                {isDeleting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
