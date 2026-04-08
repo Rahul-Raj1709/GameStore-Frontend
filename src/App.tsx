@@ -1,4 +1,10 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
+import {
+  createBrowserRouter,
+  RouterProvider,
+  Outlet,
+  ScrollRestoration,
+  Link,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./features/auth/context/AuthContext";
 import { Login } from "./features/auth/components/Login";
 import { ForgotPassword } from "./features/auth/components/ForgotPassword";
@@ -11,7 +17,8 @@ import { Roles } from "./types";
 import { AdminManagement } from "./features/users/components/AdminManagement";
 import { AddGamePage } from "./features/games/components/AddGamePage";
 import { EditGamePage } from "./features/games/components/EditGamePage";
-import { HomePage } from "./pages/HomePage"; // <-- Added HomePage import
+import { HomePage } from "./pages/HomePage";
+import { PageTransition } from "./components/PageTransition";
 
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
@@ -26,7 +33,6 @@ const Navbar = () => {
           <>
             <span className="text-gray-400">Welcome, {user?.username}</span>
 
-            {/* SuperAdmin & Admin Links */}
             <RoleGuard allowedRoles={[Roles.SuperAdmin, Roles.Admin]}>
               <Link
                 to="/games/new"
@@ -35,7 +41,6 @@ const Navbar = () => {
               </Link>
             </RoleGuard>
 
-            {/* SuperAdmin Only Links */}
             <RoleGuard allowedRoles={[Roles.SuperAdmin]}>
               <Link
                 to="/admin-management"
@@ -44,7 +49,6 @@ const Navbar = () => {
               </Link>
             </RoleGuard>
 
-            {/* Customer Links */}
             <RoleGuard allowedRoles={[Roles.Customer]}>
               <Link
                 to="/my-lists"
@@ -78,62 +82,73 @@ const Navbar = () => {
   );
 };
 
-function AppRoutes() {
+// Root Layout wraps the UI, Pages, and Scroll logic
+const RootLayout = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gray-950 text-gray-200">
       <Navbar />
       <main className="grow">
-        <Routes>
-          {/* Public / Dynamic Root Route */}
-          <Route path="/" element={<HomePage />} />{" "}
-          {/* <-- Replaced GameCatalog with HomePage */}
-          <Route path="/games/:id" element={<GameDetailsPage />} />
-          {/* Guest Only (Users who are already logged in shouldn't see these) */}
-          <Route
-            element={<ProtectedRoute requireAuth={false} redirectTo="/" />}>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-          </Route>
-          {/* ---------------- PROTECTED ROUTES ---------------- */}
-          {/* SuperAdmin & Admin Only Routes */}
-          <Route
-            element={
-              <ProtectedRoute allowedRoles={[Roles.SuperAdmin, Roles.Admin]} />
-            }>
-            <Route path="/games/new" element={<AddGamePage />} />
-            <Route path="/games/:id/edit" element={<EditGamePage />} />
-          </Route>
-          {/* SuperAdmin Only Routes */}
-          <Route element={<ProtectedRoute allowedRoles={[Roles.SuperAdmin]} />}>
-            <Route path="/admin-management" element={<AdminManagement />} />
-          </Route>
-          {/* Customer Only Routes */}
-          <Route element={<ProtectedRoute allowedRoles={[Roles.Customer]} />}>
-            <Route
-              path="/my-lists"
-              element={
-                <div className="p-8 text-center text-gray-400">
-                  Custom Lists coming soon...
-                </div>
-              }
-            />
-          </Route>
-        </Routes>
+        <PageTransition>
+          <Outlet />
+        </PageTransition>
       </main>
+      {/* Restores scroll position perfectly when navigating back */}
+      <ScrollRestoration />
     </div>
   );
-}
+};
+
+const router = createBrowserRouter([
+  {
+    element: (
+      <AuthProvider>
+        <RootLayout />
+      </AuthProvider>
+    ),
+    children: [
+      { path: "/", element: <HomePage /> },
+      { path: "/games/:id", element: <GameDetailsPage /> },
+      {
+        element: <ProtectedRoute requireAuth={false} redirectTo="/" />,
+        children: [
+          { path: "/login", element: <Login /> },
+          { path: "/register", element: <Register /> },
+          { path: "/forgot-password", element: <ForgotPassword /> },
+          { path: "/reset-password", element: <ResetPassword /> },
+        ],
+      },
+      {
+        element: (
+          <ProtectedRoute allowedRoles={[Roles.SuperAdmin, Roles.Admin]} />
+        ),
+        children: [
+          { path: "/games/new", element: <AddGamePage /> },
+          { path: "/games/:id/edit", element: <EditGamePage /> },
+        ],
+      },
+      {
+        element: <ProtectedRoute allowedRoles={[Roles.SuperAdmin]} />,
+        children: [{ path: "/admin-management", element: <AdminManagement /> }],
+      },
+      {
+        element: <ProtectedRoute allowedRoles={[Roles.Customer]} />,
+        children: [
+          {
+            path: "/my-lists",
+            element: (
+              <div className="p-8 text-center text-gray-400">
+                Custom Lists coming soon...
+              </div>
+            ),
+          },
+        ],
+      },
+    ],
+  },
+]);
 
 function App() {
-  return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }
 
 export default App;

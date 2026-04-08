@@ -1,10 +1,8 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useGames } from "../api/useGames";
 import { GameCard } from "./GameCard";
 import { Loader2, AlertCircle, Search, SlidersHorizontal } from "lucide-react";
-import gsap from "gsap";
-import { useGSAP } from "@gsap/react";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export const GameCatalog = () => {
@@ -30,21 +28,8 @@ export const GameCatalog = () => {
 
   const games = data?.pages.flatMap((page) => page.items) || [];
 
-  // GSAP Animations
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  useGSAP(() => {
-    if (games.length > 0) {
-      gsap.fromTo(
-        ".game-card",
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, stagger: 0.05, duration: 0.5, ease: "power2.out" },
-      );
-    }
-  }, [games.length]);
-
   return (
-    <div className="max-w-7xl mx-auto p-6" ref={containerRef}>
+    <div className="max-w-7xl mx-auto p-6">
       <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Browse Games</h1>
@@ -92,10 +77,7 @@ export const GameCatalog = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {games.map((game) => (
-          <Link
-            to={`/games/${game.id}`}
-            key={game.id}
-            className="game-card opacity-0">
+          <Link to={`/games/${game.id}`} key={game.id} className="block">
             <GameCard game={game} />
           </Link>
         ))}

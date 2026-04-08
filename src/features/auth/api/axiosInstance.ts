@@ -2,7 +2,7 @@ import axios from "axios";
 import { authService } from "@/features/auth/api/auth.service";
 
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || "https://localhost:64039/api",
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
@@ -69,8 +69,9 @@ api.interceptors.response.use(
             currentRefreshToken,
           );
 
-          if (result.isSuccess) {
-            const { token, refreshToken, ...userData } = result.value;
+          // ✅ FIX: Check result directly since it's the AuthResponse object
+          if (result && result.token) {
+            const { token, refreshToken, ...userData } = result;
 
             // Update storage
             localStorage.setItem("token", token);

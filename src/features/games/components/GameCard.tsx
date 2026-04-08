@@ -1,12 +1,27 @@
+import { memo, useRef } from "react";
 import { GameSummary } from "../types";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 interface GameCardProps {
   game: GameSummary;
 }
 
-export const GameCard = ({ game }: GameCardProps) => {
+export const GameCard = memo(({ game }: GameCardProps) => {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  useGSAP(() => {
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" },
+    );
+  }, []);
+
   return (
-    <div className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-600 transition-colors group cursor-pointer flex flex-col h-full">
+    <div
+      ref={cardRef}
+      className="bg-gray-900 border border-gray-800 rounded-xl p-5 hover:border-gray-600 transition-colors group flex flex-col h-full cursor-pointer">
       <div className="mb-4">
         <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
           {game.name}
@@ -26,4 +41,7 @@ export const GameCard = ({ game }: GameCardProps) => {
       </div>
     </div>
   );
-};
+});
+
+// Add display name for React DevTools (since we used memo)
+GameCard.displayName = "GameCard";
