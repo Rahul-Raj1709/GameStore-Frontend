@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import { AuthProvider, useAuth } from "./features/auth/context/AuthContext";
 import { Login } from "./features/auth/components/Login";
+import { ForgotPassword } from "./features/auth/components/ForgotPassword";
+import { ResetPassword } from "./features/auth/components/ResetPassword";
+import { Register } from "./features/auth/components/Register";
 import { GameCatalog } from "./features/games/components/GameCatalog";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { GameDetailsPage } from "./features/games/components/GameDetailsPage";
@@ -54,11 +57,19 @@ const Navbar = () => {
             </button>
           </>
         ) : (
-          <Link
-            to="/login"
-            className="text-gray-300 hover:text-white transition-colors">
-            Login
-          </Link>
+          // 2. Added Register Link to the Navbar
+          <div className="flex items-center gap-4">
+            <Link
+              to="/login"
+              className="text-gray-300 hover:text-white transition-colors">
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
+              Sign Up
+            </Link>
+          </div>
         )}
       </div>
     </nav>
@@ -75,10 +86,13 @@ function AppRoutes() {
           <Route path="/" element={<GameCatalog />} />
           <Route path="/games/:id" element={<GameDetailsPage />} />
 
-          {/* Guest Only */}
+          {/* Guest Only (Users who are already logged in shouldn't see these) */}
           <Route
             element={<ProtectedRoute requireAuth={false} redirectTo="/" />}>
             <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
 
           {/* ---------------- PROTECTED ROUTES ---------------- */}
@@ -88,7 +102,6 @@ function AppRoutes() {
             element={
               <ProtectedRoute allowedRoles={[Roles.SuperAdmin, Roles.Admin]} />
             }>
-            {/* We will build the Add/Edit form next */}
             <Route
               path="/games/new"
               element={
