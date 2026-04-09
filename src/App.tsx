@@ -4,6 +4,7 @@ import {
   Outlet,
   ScrollRestoration,
   Link,
+  useLocation, // Add this import
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./features/auth/context/AuthContext";
 import { Login } from "./features/auth/components/Login";
@@ -12,61 +13,34 @@ import { ResetPassword } from "./features/auth/components/ResetPassword";
 import { Register } from "./features/auth/components/Register";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { GameDetailsPage } from "./features/games/components/GameDetailsPage";
-import { RoleGuard } from "./components/RoleGuard";
 import { Roles } from "./types";
 import { AdminManagement } from "./features/users/components/AdminManagement";
 import { AddGamePage } from "./features/games/components/AddGamePage";
 import { EditGamePage } from "./features/games/components/EditGamePage";
 import { HomePage } from "./pages/HomePage";
 import { PageTransition } from "./components/PageTransition";
+import { Sidebar } from "./components/Sidebar";
 
 // Import the new List pages
 import { MyListsPage } from "./features/users/components/MyListsPage";
 import { CustomListDetailsPage } from "./features/users/components/CustomListDetailsPage";
 
 const Navbar = () => {
-  const { isAuthenticated, logout, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   return (
-    <nav className="p-4 border-b border-gray-800 bg-gray-900 flex justify-between items-center sticky top-0 z-50">
-      <Link to="/" className="text-xl font-bold text-white tracking-wide">
+    <nav className="p-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur-md flex justify-between items-center sticky top-0 z-50">
+      <Link
+        to="/"
+        className="text-xl font-bold text-white tracking-wide md:hidden">
         GameStore
       </Link>
-      <div className="flex gap-4 items-center text-sm">
+      <div className="flex gap-4 items-center ml-auto text-sm">
         {isAuthenticated ? (
-          <>
-            <span className="text-gray-400">Welcome, {user?.username}</span>
-
-            <RoleGuard allowedRoles={[Roles.SuperAdmin, Roles.Admin]}>
-              <Link
-                to="/games/new"
-                className="text-green-400 hover:text-green-300 font-medium transition-colors">
-                + Add Game
-              </Link>
-            </RoleGuard>
-
-            <RoleGuard allowedRoles={[Roles.SuperAdmin]}>
-              <Link
-                to="/admin-management"
-                className="text-purple-400 hover:text-purple-300 transition-colors">
-                Manage Admins
-              </Link>
-            </RoleGuard>
-
-            <RoleGuard allowedRoles={[Roles.Customer]}>
-              <Link
-                to="/my-lists"
-                className="text-gray-300 hover:text-white transition-colors">
-                My Lists
-              </Link>
-            </RoleGuard>
-
-            <button
-              onClick={logout}
-              className="text-red-400 hover:text-red-300 transition-colors ml-4">
-              Logout
-            </button>
-          </>
+          <span className="text-gray-400">
+            Welcome,{" "}
+            <span className="text-white font-medium">{user?.username}</span>
+          </span>
         ) : (
           <div className="flex items-center gap-4">
             <Link
@@ -88,16 +62,33 @@ const Navbar = () => {
 
 // Root Layout wraps the UI, Pages, and Scroll logic
 const RootLayout = () => {
+  const location = useLocation();
+
+  // Define paths where the sidebar and navbar should be hidden
+  const authPaths = [
+    "/login",
+    "/register",
+    "/forgot-password",
+    "/reset-password",
+  ];
+  const isAuthPage = authPaths.includes(location.pathname);
+
   return (
-    <div className="min-h-screen flex flex-col bg-gray-950 text-gray-200">
-      <Navbar />
-      <main className="grow">
-        <PageTransition>
-          <Outlet />
-        </PageTransition>
-      </main>
-      {/* Restores scroll position perfectly when navigating back */}
-      <ScrollRestoration />
+    <div className="min-h-screen flex bg-gray-950 text-gray-200">
+      {/* Conditionally render Sidebar */}
+      {!isAuthPage && <Sidebar />}
+
+      <div className="flex flex-col flex-1 min-w-0">
+        {/* Conditionally render Navbar */}
+        {!isAuthPage && <Navbar />}
+
+        <main className={`grow ${!isAuthPage ? "p-6" : ""}`}>
+          <PageTransition>
+            <Outlet />
+          </PageTransition>
+        </main>
+        <ScrollRestoration />
+      </div>
     </div>
   );
 };
@@ -137,7 +128,6 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute allowedRoles={[Roles.Customer]} />,
         children: [
-          // Updated Routes for Lists
           { path: "/my-lists", element: <MyListsPage /> },
           { path: "/my-lists/:listId", element: <CustomListDetailsPage /> },
         ],
