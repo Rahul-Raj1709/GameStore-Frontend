@@ -1,5 +1,3 @@
-import { PagedResponse } from "@/types";
-
 export interface GameSummary {
   id: number;
   name: string;
@@ -44,9 +42,6 @@ export interface CreateGamePayload {
   price: number | null;
   releaseDate: string; // Format: YYYY-MM-DD
 }
-
-// Replaced with the global PagedResponse
-export type CursorPagedGames = PagedResponse<GameSummary>;
 
 export interface ToggleLikeResponse {
   gameId: number;

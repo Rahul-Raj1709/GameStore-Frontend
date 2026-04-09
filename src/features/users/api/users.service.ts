@@ -7,15 +7,26 @@ import {
   ToggleGameInListResponse,
 } from "../types";
 import { GameSummary } from "@/features/games/types";
+import { PagedList } from "@/types";
 
 export const usersService = {
-  getAdmins: async (): Promise<UserDto[]> => {
-    const response = await api.get("/users/admin/admins");
+  getAdmins: async (
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<PagedList<UserDto>> => {
+    const response = await api.get<PagedList<UserDto>>("/users/admin/admins", {
+      params: { page, pageSize },
+    });
     return response.data;
   },
 
-  getPendingAdmins: async (): Promise<UserDto[]> => {
-    const response = await api.get("/users/admin/pending");
+  getPendingAdmins: async (
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<PagedList<UserDto>> => {
+    const response = await api.get<PagedList<UserDto>>("/users/admin/pending", {
+      params: { page, pageSize },
+    });
     return response.data;
   },
 

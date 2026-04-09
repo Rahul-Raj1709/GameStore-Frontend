@@ -1,21 +1,29 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { usersService } from "../api/users.service";
 import { UserDto, UserDetailsDto } from "../types";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 export const AdminManagement = () => {
   const { user: currentUser } = useAuth();
-  const [activeTab, setActiveTab] = useState<"active" | "pending">("active");
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL synced state
+  const activeTab = searchParams.get("tab") || "active";
+  const page = parseInt(searchParams.get("page") || "1", 10);
+  const pageSize = 10;
+
   const [users, setUsers] = useState<UserDto[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // View Modal State
+  // Modals state...
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserDetailsDto | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  // Confirm Modal State
   const [confirmConfig, setConfirmConfig] = useState<{
     isOpen: boolean;
     actionType: "delete" | "toggleStatus" | null;
@@ -31,9 +39,11 @@ export const AdminManagement = () => {
     try {
       const data =
         activeTab === "active"
-          ? await usersService.getAdmins()
-          : await usersService.getPendingAdmins();
-      setUsers(data);
+          ? await usersService.getAdmins(page, pageSize)
+          : await usersService.getPendingAdmins(page, pageSize);
+
+      setUsers(data.items);
+      setTotalPages(Math.ceil(data.totalCount / pageSize));
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to load users.");
     } finally {
@@ -43,10 +53,36 @@ export const AdminManagement = () => {
 
   useEffect(() => {
     fetchUsers();
-  }, [activeTab]);
+  }, [activeTab, page]);
 
-  // --- Handlers ---
+  // Handlers for URL updating
+  const handleTabChange = (tab: string) => {
+    setSearchParams({ tab, page: "1" }); // Reset to page 1 on tab change
+  };
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setSearchParams({ tab: activeTab, page: newPage.toString() });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisible = 5;
+    let start = Math.max(1, page - Math.floor(maxVisible / 2));
+    let end = Math.min(totalPages, start + maxVisible - 1);
+
+    if (end - start + 1 < maxVisible) {
+      start = Math.max(1, end - maxVisible + 1);
+    }
+
+    for (let i = start; i <= end; i++) pages.push(i);
+    return pages;
+  };
+
   const handleViewClick = async (id: number) => {
+    // ... keep existing modal logic ...
     setIsViewModalOpen(true);
     setIsLoadingDetails(true);
     setSelectedUser(null);
@@ -62,13 +98,14 @@ export const AdminManagement = () => {
   };
 
   const executeConfirmAction = async () => {
+    // ... keep existing confirm logic ...
     const { actionType, userId, currentStatus } = confirmConfig;
     if (!userId) return;
 
     try {
       if (actionType === "delete") {
         await usersService.deleteUser(userId);
-        setUsers(users.filter((u) => u.id !== userId));
+        fetchUsers(); // Refresh to maintain pagination
       } else if (actionType === "toggleStatus") {
         await usersService.updateUserStatus(userId, !currentStatus);
         fetchUsers();
@@ -84,10 +121,9 @@ export const AdminManagement = () => {
     <div className="max-w-6xl mx-auto p-6 relative">
       <h1 className="text-3xl font-bold text-white mb-6">Admin Management</h1>
 
-      {/* Tabs */}
       <div className="flex space-x-4 mb-6 border-b border-gray-800">
         <button
-          onClick={() => setActiveTab("active")}
+          onClick={() => handleTabChange("active")}
           className={`pb-2 px-4 font-medium transition-colors ${
             activeTab === "active"
               ? "text-blue-400 border-b-2 border-blue-400"
@@ -96,7 +132,7 @@ export const AdminManagement = () => {
           Active Admins
         </button>
         <button
-          onClick={() => setActiveTab("pending")}
+          onClick={() => handleTabChange("pending")}
           className={`pb-2 px-4 font-medium transition-colors ${
             activeTab === "pending"
               ? "text-purple-400 border-b-2 border-purple-400"
@@ -112,7 +148,6 @@ export const AdminManagement = () => {
         </div>
       )}
 
-      {/* Table */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400">Loading...</div>
@@ -131,6 +166,7 @@ export const AdminManagement = () => {
                 <th className="p-4 text-right">Actions</th>
               </tr>
             </thead>
+            {/* Keep existing tbody rendering exactly as it is... */}
             <tbody className="divide-y divide-gray-800 text-gray-300">
               {users.map((u) => (
                 <tr
@@ -141,17 +177,12 @@ export const AdminManagement = () => {
                   <td className="p-4">{u.email}</td>
                   <td className="p-4">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${
-                        u.isActive
-                          ? "bg-green-900/50 text-green-400"
-                          : "bg-yellow-900/50 text-yellow-400"
-                      }`}>
+                      className={`px-2 py-1 rounded text-xs font-semibold ${u.isActive ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400"}`}>
                       {u.isActive ? "Active" : "Pending/Inactive"}
                     </span>
                   </td>
                   <td className="p-4 text-right space-x-4">
                     <div className="flex justify-end items-center gap-3">
-                      {/* View Button */}
                       <button
                         onClick={() => handleViewClick(u.id)}
                         className="text-blue-400 hover:text-blue-300 transition-colors"
@@ -170,11 +201,8 @@ export const AdminManagement = () => {
                           <circle cx="12" cy="12" r="3" />
                         </svg>
                       </button>
-
-                      {/* Prevent superadmin from deactivating/deleting themselves */}
                       {u.id !== currentUser?.id && (
                         <>
-                          {/* Toggle Status Button (ICONS) */}
                           <button
                             onClick={() =>
                               setConfirmConfig({
@@ -190,11 +218,7 @@ export const AdminManagement = () => {
                                   : `Are you sure you want to approve ${u.name} as an active Admin?`,
                               })
                             }
-                            className={`transition-colors ${
-                              u.isActive
-                                ? "text-yellow-400 hover:text-yellow-300"
-                                : "text-green-400 hover:text-green-300"
-                            }`}
+                            className={`transition-colors ${u.isActive ? "text-yellow-400 hover:text-yellow-300" : "text-green-400 hover:text-green-300"}`}
                             title={
                               u.isActive ? "Deactivate User" : "Approve User"
                             }>
@@ -227,8 +251,6 @@ export const AdminManagement = () => {
                               </svg>
                             )}
                           </button>
-
-                          {/* Delete Button */}
                           <button
                             onClick={() =>
                               setConfirmConfig({
@@ -260,7 +282,6 @@ export const AdminManagement = () => {
                           </button>
                         </>
                       )}
-
                       {u.id === currentUser?.id && (
                         <span className="text-gray-500 italic text-xs ml-2">
                           Current User
@@ -274,6 +295,32 @@ export const AdminManagement = () => {
           </table>
         )}
       </div>
+
+      {/* Pagination Controls */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-8 flex justify-center items-center gap-2">
+          <button
+            onClick={() => handlePageChange(page - 1)}
+            disabled={page === 1}
+            className="p-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          {getPageNumbers().map((pageNum) => (
+            <button
+              key={pageNum}
+              onClick={() => handlePageChange(pageNum)}
+              className={`w-10 h-10 rounded-lg font-medium transition-colors ${pageNum === page ? "bg-blue-600 text-white" : "bg-gray-900 border border-gray-800 text-gray-400 hover:bg-gray-800 hover:text-white"}`}>
+              {pageNum}
+            </button>
+          ))}
+          <button
+            onClick={() => handlePageChange(page + 1)}
+            disabled={page === totalPages}
+            className="p-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
 
       {/* --- View Modal --- */}
       {isViewModalOpen && (
