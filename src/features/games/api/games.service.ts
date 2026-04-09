@@ -1,11 +1,13 @@
 import { api } from "@/api/axiosInstance";
-import { PagedList } from "@/types";
+import { PagedList, PagedResponse } from "@/types";
 import {
   GameSummary,
   GameDetails,
   GetGamesParams,
   CreateGamePayload,
-  CursorPagedGames,
+  Review,
+  ReviewPayload,
+  ToggleLikeResponse,
 } from "../types";
 
 export const gamesService = {
@@ -22,12 +24,15 @@ export const gamesService = {
   },
 
   getMyGames: async (
-    cursor?: string,
+    cursor?: number,
     pageSize: number = 20,
-  ): Promise<CursorPagedGames> => {
-    const response = await api.get<CursorPagedGames>("/games/my-games", {
-      params: { cursor, pageSize },
-    });
+  ): Promise<PagedResponse<GameSummary>> => {
+    const response = await api.get<PagedResponse<GameSummary>>(
+      "/games/my-games",
+      {
+        params: { cursor, pageSize },
+      },
+    );
     return response.data;
   },
 
@@ -42,5 +47,50 @@ export const gamesService = {
 
   deleteGame: async (id: number): Promise<void> => {
     await api.delete(`/games/${id}`);
+  },
+
+  // --- Likes ---
+  toggleLike: async (gameId: number): Promise<ToggleLikeResponse> => {
+    const response = await api.post<ToggleLikeResponse>(
+      `/games/${gameId}/like`,
+    );
+    return response.data;
+  },
+
+  // --- Reviews ---
+  getReviews: async (
+    gameId: number,
+    page: number = 1,
+    pageSize: number = 10,
+  ): Promise<PagedList<Review>> => {
+    const response = await api.get<PagedList<Review>>(
+      `/games/${gameId}/reviews/`,
+      {
+        params: { page, pageSize },
+      },
+    );
+    return response.data;
+  },
+
+  addReview: async (
+    gameId: number,
+    payload: ReviewPayload,
+  ): Promise<{ reviewId: number }> => {
+    const response = await api.post<{ reviewId: number }>(
+      `/games/${gameId}/reviews/`,
+      payload,
+    );
+    return response.data;
+  },
+
+  updateReview: async (
+    reviewId: number,
+    payload: ReviewPayload,
+  ): Promise<void> => {
+    await api.put(`/games/reviews/${reviewId}`, payload);
+  },
+
+  deleteReview: async (reviewId: number): Promise<void> => {
+    await api.delete(`/games/reviews/${reviewId}`);
   },
 };

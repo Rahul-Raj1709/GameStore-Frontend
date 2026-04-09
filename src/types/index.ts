@@ -10,13 +10,19 @@ export interface Result<T = void> {
   value: T;
 }
 
-// Updated to match your backend's PagedList.cs
+// Offset-based pagination
 export interface PagedList<T> {
   items: T[];
   page: number;
   pageSize: number;
   totalCount: number;
   hasNextPage: boolean;
+}
+
+// Cursor-based pagination
+export interface PagedResponse<T> {
+  data: T[];
+  nextCursor: number | null;
 }
 
 export enum Roles {

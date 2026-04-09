@@ -1,3 +1,5 @@
+import { PagedResponse } from "@/types";
+
 export interface GameSummary {
   id: number;
   name: string;
@@ -43,7 +45,26 @@ export interface CreateGamePayload {
   releaseDate: string; // Format: YYYY-MM-DD
 }
 
-export interface CursorPagedGames {
-  data: GameSummary[];
-  nextCursor: string | null;
+// Replaced with the global PagedResponse
+export type CursorPagedGames = PagedResponse<GameSummary>;
+
+export interface ToggleLikeResponse {
+  gameId: number;
+  isLiked: boolean;
+}
+
+export interface Review {
+  id: number;
+  gameId: number;
+  userId: number;
+  username: string;
+  rating: number;
+  comment: string;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
+export interface ReviewPayload {
+  rating: number;
+  comment: string;
 }
