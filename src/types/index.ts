@@ -19,12 +19,6 @@ export interface PagedList<T> {
   hasNextPage: boolean;
 }
 
-// Cursor-based pagination
-export interface PagedResponse<T> {
-  data: T[];
-  nextCursor: number | null;
-}
-
 export enum Roles {
   SuperAdmin = "SuperAdmin",
   Admin = "Admin",

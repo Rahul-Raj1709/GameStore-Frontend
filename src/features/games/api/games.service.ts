@@ -1,5 +1,5 @@
 import { api } from "@/api/axiosInstance";
-import { PagedList, PagedResponse } from "@/types";
+import { PagedList } from "@/types";
 import {
   GameSummary,
   GameDetails,
@@ -23,16 +23,14 @@ export const gamesService = {
     return response.data;
   },
 
+  // Updated to use standard offset-limit pagination
   getMyGames: async (
-    cursor?: number,
+    page: number = 1,
     pageSize: number = 20,
-  ): Promise<PagedResponse<GameSummary>> => {
-    const response = await api.get<PagedResponse<GameSummary>>(
-      "/games/my-games",
-      {
-        params: { cursor, pageSize },
-      },
-    );
+  ): Promise<PagedList<GameSummary>> => {
+    const response = await api.get<PagedList<GameSummary>>("/games/my-games", {
+      params: { page, pageSize },
+    });
     return response.data;
   },
 
