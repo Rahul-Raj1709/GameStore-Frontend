@@ -1,58 +1,66 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../features/auth/context/AuthContext"; //
-import { Roles } from "../types"; //
+import { useAuth } from "../features/auth/context/AuthContext";
+import { Roles } from "../types";
 import { useQuery } from "@tanstack/react-query";
-import { genresService } from "../features/games/api/genres.service"; //
+import { genresService } from "../features/games/api/genres.service";
 import {
   Home,
   PlusSquare,
   Users,
   List,
-  LogOut,
-  Gamepad2,
   ChevronDown,
   ChevronRight,
   LayoutGrid,
   Menu,
 } from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 export const Sidebar = () => {
-  const { user, isAuthenticated, logout } = useAuth(); //
+  const { user } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isCategoryOpen, setIsCategoryOpen] = useState(true);
+  const navRef = useRef<HTMLDivElement>(null);
 
   const { data: genres } = useQuery({
     queryKey: ["genres"],
-    queryFn: () => genresService.getGenres(), //
+    queryFn: () => genresService.getGenres(),
   });
 
-  // Navigation items with role-based access
+  useGSAP(() => {
+    gsap.fromTo(
+      ".nav-item",
+      { opacity: 0, x: -10 },
+      { opacity: 1, x: 0, stagger: 0.05, duration: 0.4, ease: "power2.out" },
+    );
+  }, []);
+
   const navItems = [
     {
-      label: "Home",
+      label: "Dashboard",
       to: "/",
-      icon: <Home size={22} />,
+      icon: <Home size={20} />,
       roles: [Roles.SuperAdmin, Roles.Admin, Roles.Customer, null],
     },
     {
-      label: "Add Game",
+      label: "Deploy Game",
       to: "/games/new",
-      icon: <PlusSquare size={22} />,
+      icon: <PlusSquare size={20} />,
       roles: [Roles.SuperAdmin, Roles.Admin],
     },
     {
-      label: "Manage Admins",
+      label: "Security Clearance",
       to: "/admin-management",
-      icon: <Users size={22} />,
+      icon: <Users size={20} />,
       roles: [Roles.SuperAdmin],
     },
     {
-      label: "My Lists",
+      label: "My Collections",
       to: "/my-lists",
-      icon: <List size={22} />,
+      icon: <List size={20} />,
       roles: [Roles.Customer],
     },
   ];
@@ -60,59 +68,40 @@ export const Sidebar = () => {
   const filteredItems = navItems.filter((item) =>
     item.roles.includes((user?.role as Roles) || null),
   );
-
-  const handleGenreClick = (genreId: number) => {
-    navigate(`/?genreId=${genreId}`);
-  };
-
-  // Logic to determine if Categories should be shown:
-  // Show for Guests (user is null) and Customers
   const showCategories = !user || user.role === Roles.Customer;
 
   return (
     <aside
-      className={`bg-gray-900 border-r border-gray-800 flex flex-col sticky top-0 h-screen transition-all duration-300 ease-in-out z-40 ${
-        isCollapsed ? "w-20" : "w-64"
-      }`}>
+      className={`bg-gray-950/80 backdrop-blur-3xl border-r border-white/5 flex flex-col h-full transition-all duration-400 ease-in-out z-40 ${isCollapsed ? "w-20" : "w-64"}`}>
+      {/* Sidebar Toggle Control */}
       <div
-        className={`p-4 flex items-center ${isCollapsed ? "flex-col gap-6" : "justify-between"}`}>
-        <Link
-          to="/"
-          className="flex items-center gap-3 text-xl font-bold text-white overflow-hidden shrink-0">
-          <Gamepad2 className="text-blue-500 shrink-0" size={28} />
-          {!isCollapsed && (
-            <span className="transition-opacity duration-300 whitespace-nowrap">
-              GameStore
-            </span>
-          )}
-        </Link>
+        className={`p-5 flex items-center border-b border-gray-800/50 ${isCollapsed ? "justify-center" : "justify-end"}`}>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-lg hover:bg-gray-800 text-gray-400 hover:text-white transition-colors shrink-0">
-          <Menu size={24} />
+          className="p-2 rounded-xl bg-gray-900 border border-gray-800 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors shrink-0">
+          <Menu size={20} />
         </button>
       </div>
 
-      <nav className="flex-1 px-3 space-y-2 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
+      {/* Navigation Links */}
+      <nav
+        ref={navRef}
+        className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {filteredItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
             <Link
               key={item.to}
               to={item.to}
-              className={`group relative flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
-                isActive
-                  ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                  : "text-gray-400 hover:bg-gray-800 hover:text-white"
-              } ${isCollapsed ? "justify-center" : ""}`}>
+              className={`nav-item group relative flex items-center gap-3 px-3 py-3.5 rounded-2xl transition-all duration-300 ${isActive ? "bg-blue-600/10 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.1)]" : "text-gray-400 border border-transparent hover:bg-white/5 hover:text-white hover:border-white/10"} ${isCollapsed ? "justify-center" : ""}`}>
               <div className="shrink-0">{item.icon}</div>
               {!isCollapsed && (
-                <span className="font-medium whitespace-nowrap">
+                <span className="font-bold text-sm tracking-wide">
                   {item.label}
                 </span>
               )}
               {isCollapsed && (
-                <div className="absolute left-full ml-4 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl border border-gray-700">
+                <div className="absolute left-full ml-4 px-3 py-2 bg-gray-800 text-white text-xs font-bold uppercase tracking-wider rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl border border-gray-700">
                   {item.label}
                 </div>
               )}
@@ -120,19 +109,17 @@ export const Sidebar = () => {
           );
         })}
 
-        {/* --- Categories Section (Conditional) --- */}
+        {/* Categories (Customers Only) */}
         {showCategories && (
-          <div className="pt-4 border-t border-gray-800/50">
+          <div className="pt-6 mt-4 border-t border-gray-800/50 nav-item">
             <button
               onClick={() => !isCollapsed && setIsCategoryOpen(!isCategoryOpen)}
-              className={`group relative w-full flex items-center py-2 text-gray-500 hover:text-white transition-colors ${
-                isCollapsed ? "justify-center px-0" : "justify-between px-3"
-              }`}>
+              className={`group relative w-full flex items-center py-2 text-gray-500 hover:text-white transition-colors ${isCollapsed ? "justify-center px-0" : "justify-between px-3"}`}>
               <div className="flex items-center gap-3">
-                <LayoutGrid size={22} className="shrink-0" />
+                <LayoutGrid size={20} className="shrink-0 text-blue-500/70" />
                 {!isCollapsed && (
-                  <span className="text-xs font-bold uppercase tracking-wider">
-                    Categories
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    Database Categories
                   </span>
                 )}
               </div>
@@ -142,21 +129,14 @@ export const Sidebar = () => {
                 ) : (
                   <ChevronRight size={14} />
                 ))}
-
-              {isCollapsed && (
-                <div className="absolute left-full ml-4 px-3 py-2 bg-gray-800 text-white text-sm font-medium rounded-md opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50 shadow-xl border border-gray-700">
-                  Categories
-                </div>
-              )}
             </button>
-
             {isCategoryOpen && !isCollapsed && (
-              <div className="mt-1 space-y-1 ml-4 border-l border-gray-800">
+              <div className="mt-2 space-y-1 ml-4 border-l border-gray-800/50">
                 {genres?.map((genre) => (
                   <button
                     key={genre.id}
-                    onClick={() => handleGenreClick(genre.id)}
-                    className="w-full text-left px-6 py-2 text-sm text-gray-400 hover:text-blue-400 hover:bg-gray-800/50 rounded-r-md transition-all truncate">
+                    onClick={() => navigate(`/?genreId=${genre.id}`)}
+                    className="w-full text-left px-5 py-2.5 text-xs font-bold text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 rounded-r-xl transition-all truncate">
                     {genre.name}
                   </button>
                 ))}
@@ -165,47 +145,6 @@ export const Sidebar = () => {
           </div>
         )}
       </nav>
-
-      <div className="p-4 border-t border-gray-800 bg-gray-900/50">
-        {isAuthenticated ? (
-          <div className="space-y-2">
-            {!isCollapsed && (
-              <div className="px-2 py-2">
-                <p className="text-[10px] text-blue-400 font-bold uppercase">
-                  {user?.role}
-                </p>
-                <p className="text-sm text-gray-300 truncate font-medium">
-                  {user?.username}
-                </p>
-              </div>
-            )}
-            <button
-              onClick={logout}
-              className={`group relative w-full flex items-center gap-3 py-3 text-red-400 hover:bg-red-400/10 rounded-xl transition-colors ${
-                isCollapsed ? "justify-center" : "px-3"
-              }`}>
-              <LogOut size={22} className="shrink-0" />
-              {!isCollapsed && <span className="font-medium">Logout</span>}
-            </button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-2">
-            <Link
-              to="/login"
-              className={`group relative flex items-center transition-all duration-300 ${
-                isCollapsed
-                  ? "w-12 h-12 justify-center bg-blue-600 rounded-xl text-white"
-                  : "w-full justify-center py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-lg shadow-blue-900/20"
-              }`}>
-              {isCollapsed ? (
-                <LogOut size={22} className="rotate-180" />
-              ) : (
-                "Log In"
-              )}
-            </Link>
-          </div>
-        )}
-      </div>
     </aside>
   );
 };

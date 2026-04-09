@@ -4,6 +4,7 @@ export interface GameSummary {
   genre: string;
   price: number | null;
   releaseDate: string;
+  imageUrl?: string | null; // Added to support images on the catalog cards
 }
 
 export interface GameDetails {
