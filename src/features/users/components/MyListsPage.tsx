@@ -92,7 +92,14 @@ export const MyListsPage = () => {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {likedGames?.map((game) => (
-                <GameCard key={game.id} game={game} />
+                // Added Link wrapper here so clicking opens the game details
+                <Link
+                  to={`/games/${game.id}`}
+                  state={{ from: "LikedGames" }} // <--- ADD THIS
+                  key={game.id}
+                  className="block">
+                  <GameCard game={game} />
+                </Link>
               ))}
             </div>
           )}

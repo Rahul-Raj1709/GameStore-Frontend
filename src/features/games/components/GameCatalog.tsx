@@ -151,7 +151,11 @@ export const GameCatalog = () => {
       <div
         className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-200 ${isFetching && !isLoading ? "opacity-60" : "opacity-100"}`}>
         {games.map((game) => (
-          <Link to={`/games/${game.id}`} key={game.id} className="block">
+          <Link
+            to={`/games/${game.id}`}
+            state={{ from: "Catalog" }}
+            key={game.id}
+            className="block">
             <GameCard game={game} />
           </Link>
         ))}
