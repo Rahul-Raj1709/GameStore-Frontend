@@ -20,6 +20,10 @@ import { EditGamePage } from "./features/games/components/EditGamePage";
 import { HomePage } from "./pages/HomePage";
 import { PageTransition } from "./components/PageTransition";
 
+// Import the new List pages
+import { MyListsPage } from "./features/users/components/MyListsPage";
+import { CustomListDetailsPage } from "./features/users/components/CustomListDetailsPage";
+
 const Navbar = () => {
   const { isAuthenticated, logout, user } = useAuth();
 
@@ -133,14 +137,9 @@ const router = createBrowserRouter([
       {
         element: <ProtectedRoute allowedRoles={[Roles.Customer]} />,
         children: [
-          {
-            path: "/my-lists",
-            element: (
-              <div className="p-8 text-center text-gray-400">
-                Custom Lists coming soon...
-              </div>
-            ),
-          },
+          // Updated Routes for Lists
+          { path: "/my-lists", element: <MyListsPage /> },
+          { path: "/my-lists/:listId", element: <CustomListDetailsPage /> },
         ],
       },
     ],
