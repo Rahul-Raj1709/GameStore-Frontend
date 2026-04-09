@@ -3,10 +3,9 @@ import {
   RouterProvider,
   Outlet,
   ScrollRestoration,
-  Link,
-  useLocation, // Add this import
+  useLocation,
 } from "react-router-dom";
-import { AuthProvider, useAuth } from "./features/auth/context/AuthContext";
+import { AuthProvider } from "./features/auth/context/AuthContext";
 import { Login } from "./features/auth/components/Login";
 import { ForgotPassword } from "./features/auth/components/ForgotPassword";
 import { ResetPassword } from "./features/auth/components/ResetPassword";
@@ -20,45 +19,11 @@ import { EditGamePage } from "./features/games/components/EditGamePage";
 import { HomePage } from "./pages/HomePage";
 import { PageTransition } from "./components/PageTransition";
 import { Sidebar } from "./components/Sidebar";
+import { Navbar } from "./components/Navbar"; // <-- Imported the new Navbar
 
 // Import the new List pages
 import { MyListsPage } from "./features/users/components/MyListsPage";
 import { CustomListDetailsPage } from "./features/users/components/CustomListDetailsPage";
-
-const Navbar = () => {
-  const { isAuthenticated, user } = useAuth();
-
-  return (
-    <nav className="p-4 border-b border-gray-800 bg-gray-900/50 backdrop-blur-md flex justify-between items-center sticky top-0 z-50">
-      <Link
-        to="/"
-        className="text-xl font-bold text-white tracking-wide md:hidden">
-        GameStore
-      </Link>
-      <div className="flex gap-4 items-center ml-auto text-sm">
-        {isAuthenticated ? (
-          <span className="text-gray-400">
-            Welcome,{" "}
-            <span className="text-white font-medium">{user?.username}</span>
-          </span>
-        ) : (
-          <div className="flex items-center gap-4">
-            <Link
-              to="/login"
-              className="text-gray-300 hover:text-white transition-colors">
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors">
-              Sign Up
-            </Link>
-          </div>
-        )}
-      </div>
-    </nav>
-  );
-};
 
 // Root Layout wraps the UI, Pages, and Scroll logic
 const RootLayout = () => {
@@ -72,14 +37,17 @@ const RootLayout = () => {
   const isAuthPage = authPaths.includes(location.pathname);
 
   return (
-    <div className="min-h-screen flex bg-gray-950 text-gray-200">
+    // Fixed screen height layout to lock Sidebar and Navbar in place
+    <div className="flex h-screen w-full bg-black text-white overflow-hidden">
       {/* Sidebar handles its own width transitions */}
       {!isAuthPage && <Sidebar />}
 
-      <div className="flex flex-col flex-1 min-w-0 transition-all duration-300">
+      <div className="flex flex-col flex-1 min-w-0 transition-all duration-300 relative">
+        {/* Navbar sits at the top of the content area */}
         {!isAuthPage && <Navbar />}
 
-        <main className={`grow ${!isAuthPage ? "p-6" : ""}`}>
+        {/* Scrollable page content */}
+        <main className={`grow overflow-y-auto ${!isAuthPage ? "p-6" : ""}`}>
           <PageTransition>
             <Outlet />
           </PageTransition>

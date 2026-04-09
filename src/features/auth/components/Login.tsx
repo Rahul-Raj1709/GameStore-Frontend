@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { z } from "zod";
@@ -10,21 +10,23 @@ import {
   Eye,
   EyeOff,
   Clock,
+  Fingerprint,
 } from "lucide-react";
-
 import { authService } from "../api/auth.service";
 import { useAuth } from "../context/AuthContext";
 import { LoginCredentials } from "../types";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
-// Zod Validation Schema
 const loginSchema = z.object({
-  email: z.string().email("Please enter a valid email address."),
-  password: z.string().min(6, "Password must be at least 6 characters."),
+  email: z.string().email("Invalid coordinates (email)."),
+  password: z.string().min(6, "Passcode too short."),
 });
 
 export const Login = () => {
   const navigate = useNavigate();
   const { login: setAuthContext } = useAuth();
+  const cardRef = useRef<HTMLDivElement>(null);
 
   const [formData, setFormData] = useState<LoginCredentials>({
     email: "",
@@ -34,13 +36,17 @@ export const Login = () => {
     Record<string, string>
   >({});
   const [apiError, setApiError] = useState<string | null>(null);
-
   const [showPassword, setShowPassword] = useState(false);
-
-  // NEW: State to trigger the Activation Pending screen
   const [isPendingActivation, setIsPendingActivation] = useState(false);
 
-  // React Query Mutation
+  useGSAP(() => {
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, y: 50, scale: 0.95 },
+      { opacity: 1, y: 0, scale: 1, duration: 0.8, ease: "back.out(1.2)" },
+    );
+  }, [isPendingActivation]); // Re-run animation if state swaps
+
   const loginMutation = useMutation({
     mutationFn: authService.login,
     onSuccess: (userData) => {
@@ -49,8 +55,6 @@ export const Login = () => {
     },
     onError: (error: any) => {
       const problemDetails = error.response?.data;
-
-      // Intercept the specific backend error for Inactive accounts
       if (
         problemDetails?.title === "Auth.Inactive" ||
         problemDetails?.detail?.includes("pending activation")
@@ -58,61 +62,49 @@ export const Login = () => {
         setIsPendingActivation(true);
         return;
       }
-
-      if (problemDetails?.detail) {
-        setApiError(problemDetails.detail);
-      } else if (problemDetails?.title) {
-        setApiError(problemDetails.title);
-      } else {
-        setApiError("An unexpected network error occurred. Please try again.");
-      }
+      setApiError(problemDetails?.detail || "Authentication sequence failed.");
     },
   });
 
-  // Form Handler
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setValidationErrors({});
     setApiError(null);
 
     const validationResult = loginSchema.safeParse(formData);
-
     if (!validationResult.success) {
       const errors: Record<string, string> = {};
       validationResult.error.issues.forEach((issue) => {
-        const key = String(issue.path[0]);
-        if (key) {
-          errors[key] = issue.message;
-        }
+        errors[String(issue.path[0])] = issue.message;
       });
       setValidationErrors(errors);
       return;
     }
-
     loginMutation.mutate(formData);
   };
 
-  // FULL SCREEN: Login Pending Activation Intercept
   if (isPendingActivation) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-        <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 border border-gray-800 shadow-2xl text-center">
-          <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-4">
-            Activation Pending
+        <div
+          ref={cardRef}
+          className="w-full max-w-md p-10 rounded-[2.5rem] bg-gray-900/60 backdrop-blur-xl border border-yellow-500/20 shadow-[0_0_50px_rgba(234,179,8,0.1)] text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-yellow-500/10 blur-[50px] rounded-full pointer-events-none" />
+          <Clock className="w-20 h-20 text-yellow-500 mx-auto mb-6 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]" />
+          <h2 className="text-3xl font-black text-white mb-4">
+            Clearance Pending
           </h2>
-          <p className="text-gray-300 mb-8 leading-relaxed">
-            Your administrator account is currently pending activation by a
-            SuperAdmin. You cannot access the system until your account is
-            approved.
+          <p className="text-gray-400 mb-8 leading-relaxed font-medium">
+            Your credentials are valid, but your access tier requires SuperAdmin
+            authorization. Please standby.
           </p>
           <button
             onClick={() => {
               setIsPendingActivation(false);
-              setFormData({ email: "", password: "" }); // reset form
+              setFormData({ email: "", password: "" });
             }}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-lg font-medium transition-colors">
-            Go Back
+            className="w-full py-4 bg-gray-800 hover:bg-gray-700 border border-gray-700 text-white rounded-2xl font-bold transition-all tracking-wider text-sm uppercase">
+            Acknowledge & Return
           </button>
         </div>
       </div>
@@ -120,73 +112,74 @@ export const Login = () => {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4">
-      <div className="w-full max-w-md p-8 rounded-xl bg-gray-900 border border-gray-800 shadow-2xl">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-          <p className="text-gray-400">
-            Sign in to access your custom lists and reviews.
+    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] px-4 relative">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-125 h-125 bg-blue-600/10 blur-[150px] rounded-full pointer-events-none" />
+
+      <div
+        ref={cardRef}
+        className="w-full max-w-md p-10 rounded-[2.5rem] bg-gray-900/60 backdrop-blur-2xl border border-gray-800 shadow-[0_0_50px_rgba(0,0,0,0.5)] relative z-10">
+        <div className="text-center mb-10">
+          <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-[0_0_20px_rgba(59,130,246,0.3)] border border-blue-500/30">
+            <Fingerprint className="w-8 h-8 text-blue-400" />
+          </div>
+          <h2 className="text-3xl font-black text-white tracking-tight mb-2">
+            Identify
+          </h2>
+          <p className="text-gray-400 font-medium">
+            Authenticate to access the network.
           </p>
         </div>
 
         {apiError && (
-          <div className="mb-6 p-4 rounded-lg bg-red-900/50 border border-red-500/50 flex items-start gap-3 text-red-200">
+          <div className="mb-6 p-4 rounded-xl bg-red-900/30 border border-red-500/30 flex items-start gap-3 text-red-300">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
-            <p className="text-sm">{apiError}</p>
+            <p className="text-sm font-medium">{apiError}</p>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Email Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Email
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+              Comms Channel
             </label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) =>
                   setFormData({ ...formData, email: e.target.value })
                 }
-                className={`w-full pl-10 pr-4 py-3 bg-gray-950 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                  validationErrors.email ? "border-red-500" : "border-gray-800"
-                }`}
-                placeholder="developer@gamestore.com"
+                className="w-full pl-12 pr-4 py-4 bg-gray-950/50 border border-gray-800 rounded-2xl text-white placeholder-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium shadow-inner"
+                placeholder="user@gamestore.net"
               />
             </div>
             {validationErrors.email && (
-              <p className="mt-2 text-sm text-red-400">
+              <p className="mt-2 text-xs text-red-400 font-bold">
                 {validationErrors.email}
               </p>
             )}
           </div>
 
-          {/* Password Input */}
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Password
+            <label className="block text-xs font-black uppercase tracking-widest text-gray-500 mb-2">
+              Passcode
             </label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
+              <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
               <input
                 type={showPassword ? "text" : "password"}
                 value={formData.password}
                 onChange={(e) =>
                   setFormData({ ...formData, password: e.target.value })
                 }
-                className={`w-full pl-10 pr-12 py-3 bg-gray-950 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${
-                  validationErrors.password
-                    ? "border-red-500"
-                    : "border-gray-800"
-                }`}
+                className="w-full pl-12 pr-12 py-4 bg-gray-950/50 border border-gray-800 rounded-2xl text-white placeholder-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all font-medium shadow-inner"
                 placeholder="••••••••"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 focus:outline-none">
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition-colors">
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" />
                 ) : (
@@ -195,7 +188,7 @@ export const Login = () => {
               </button>
             </div>
             {validationErrors.password && (
-              <p className="mt-2 text-sm text-red-400">
+              <p className="mt-2 text-xs text-red-400 font-bold">
                 {validationErrors.password}
               </p>
             )}
@@ -204,31 +197,32 @@ export const Login = () => {
           <div className="flex justify-end mt-2">
             <Link
               to="/forgot-password"
-              className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-              Forgot password?
+              className="text-xs font-bold text-blue-500 hover:text-blue-400 transition-colors uppercase tracking-wider">
+              Bypass Security?
             </Link>
           </div>
 
           <button
             type="submit"
             disabled={loginMutation.isPending}
-            className="w-full flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            className="w-full py-4 mt-4 bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-black transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(59,130,246,0.3)] hover:shadow-[0_0_30px_rgba(59,130,246,0.5)] uppercase tracking-wider text-sm">
             {loginMutation.isPending ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                Signing in...
-              </>
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Verifying...
+              </span>
             ) : (
-              "Sign In"
+              "Initialize Session"
             )}
           </button>
         </form>
 
-        <div className="text-center mt-4">
-          <p className="text-sm text-gray-400">
-            Don't have an account?{" "}
-            <Link to="/register" className="text-blue-400 hover:underline">
-              Sign up
+        <div className="text-center mt-8 pt-6 border-t border-gray-800/50">
+          <p className="text-sm text-gray-500 font-medium">
+            New operator?{" "}
+            <Link
+              to="/register"
+              className="text-white hover:text-blue-400 transition-colors font-bold ml-1">
+              Establish Link
             </Link>
           </p>
         </div>

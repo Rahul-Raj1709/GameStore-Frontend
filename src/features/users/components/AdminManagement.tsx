@@ -3,13 +3,22 @@ import { useSearchParams } from "react-router-dom";
 import { usersService } from "../api/users.service";
 import { UserDto, UserDetailsDto } from "../types";
 import { useAuth } from "@/features/auth/context/AuthContext";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  ShieldCheck,
+  Loader2,
+  Eye,
+  Trash2,
+  Power,
+  UserCheck,
+  X,
+} from "lucide-react";
+import gsap from "gsap";
+import { useGSAP } from "@gsap/react";
 
 export const AdminManagement = () => {
   const { user: currentUser } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // URL synced state
   const activeTab = searchParams.get("tab") || "active";
   const page = parseInt(searchParams.get("page") || "1", 10);
   const pageSize = 10;
@@ -17,35 +26,22 @@ export const AdminManagement = () => {
   const [users, setUsers] = useState<UserDto[]>([]);
   const [totalPages, setTotalPages] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
-  // Modals state...
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserDetailsDto | null>(null);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
-  const [confirmConfig, setConfirmConfig] = useState<{
-    isOpen: boolean;
-    actionType: "delete" | "toggleStatus" | null;
-    userId: number | null;
-    currentStatus?: boolean;
-    title: string;
-    message: string;
-  }>({ isOpen: false, actionType: null, userId: null, title: "", message: "" });
-
   const fetchUsers = async () => {
     setLoading(true);
-    setError(null);
     try {
       const data =
         activeTab === "active"
           ? await usersService.getAdmins(page, pageSize)
           : await usersService.getPendingAdmins(page, pageSize);
-
       setUsers(data.items);
       setTotalPages(Math.ceil(data.totalCount / pageSize));
-    } catch (err: any) {
-      setError(err.response?.data?.detail || "Failed to load users.");
+    } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -55,34 +51,17 @@ export const AdminManagement = () => {
     fetchUsers();
   }, [activeTab, page]);
 
-  // Handlers for URL updating
-  const handleTabChange = (tab: string) => {
-    setSearchParams({ tab, page: "1" }); // Reset to page 1 on tab change
-  };
-
-  const handlePageChange = (newPage: number) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setSearchParams({ tab: activeTab, page: newPage.toString() });
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  useGSAP(() => {
+    if (!loading && users.length > 0) {
+      gsap.fromTo(
+        "tr.user-row",
+        { opacity: 0, y: 15 },
+        { opacity: 1, y: 0, stagger: 0.05, duration: 0.4, ease: "power2.out" },
+      );
     }
-  };
-
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxVisible = 5;
-    let start = Math.max(1, page - Math.floor(maxVisible / 2));
-    let end = Math.min(totalPages, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) pages.push(i);
-    return pages;
-  };
+  }, [loading, users]);
 
   const handleViewClick = async (id: number) => {
-    // ... keep existing modal logic ...
     setIsViewModalOpen(true);
     setIsLoadingDetails(true);
     setSelectedUser(null);
@@ -90,202 +69,124 @@ export const AdminManagement = () => {
       const details = await usersService.getUserDetails(id);
       setSelectedUser(details);
     } catch (err) {
-      alert("Failed to load user details.");
+      alert("Failed to load details.");
       setIsViewModalOpen(false);
     } finally {
       setIsLoadingDetails(false);
     }
   };
 
-  const executeConfirmAction = async () => {
-    // ... keep existing confirm logic ...
-    const { actionType, userId, currentStatus } = confirmConfig;
-    if (!userId) return;
+  const toggleStatus = async (id: number, currentStatus: boolean) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to ${currentStatus ? "deactivate" : "approve"} this user?`,
+      )
+    )
+      return;
+    await usersService.updateUserStatus(id, !currentStatus);
+    fetchUsers();
+  };
 
-    try {
-      if (actionType === "delete") {
-        await usersService.deleteUser(userId);
-        fetchUsers(); // Refresh to maintain pagination
-      } else if (actionType === "toggleStatus") {
-        await usersService.updateUserStatus(userId, !currentStatus);
-        fetchUsers();
-      }
-    } catch (err) {
-      alert("Action failed. Please try again.");
-    } finally {
-      setConfirmConfig({ ...confirmConfig, isOpen: false });
-    }
+  const deleteUser = async (id: number) => {
+    if (!window.confirm("Permanently delete this user? This cannot be undone."))
+      return;
+    await usersService.deleteUser(id);
+    fetchUsers();
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 relative">
-      <h1 className="text-3xl font-bold text-white mb-6">Admin Management</h1>
+    <div className="max-w-7xl mx-auto p-6 relative mt-6">
+      <div className="relative overflow-hidden bg-gray-900/50 border border-gray-800 rounded-3xl p-8 mb-8 backdrop-blur-xl shadow-2xl">
+        <div className="absolute -right-20 -top-20 w-64 h-64 bg-purple-600/20 blur-[100px] rounded-full pointer-events-none" />
+        <div className="flex items-center gap-4 relative z-10">
+          <div className="w-14 h-14 bg-linear-to-br from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-[0_0_20px_rgba(168,85,247,0.4)]">
+            <ShieldCheck className="w-7 h-7 text-white" />
+          </div>
+          <div>
+            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-linear-to-r from-purple-400 to-indigo-300 tracking-tight">
+              Security Clearance
+            </h1>
+            <p className="text-gray-400 font-medium">
+              Manage administrators and system access.
+            </p>
+          </div>
+        </div>
+      </div>
 
       <div className="flex space-x-4 mb-6 border-b border-gray-800">
         <button
-          onClick={() => handleTabChange("active")}
-          className={`pb-2 px-4 font-medium transition-colors ${
-            activeTab === "active"
-              ? "text-blue-400 border-b-2 border-blue-400"
-              : "text-gray-400 hover:text-gray-200"
-          }`}>
-          Active Admins
+          onClick={() => setSearchParams({ tab: "active", page: "1" })}
+          className={`pb-3 px-6 font-bold transition-all ${activeTab === "active" ? "text-purple-400 border-b-2 border-purple-400" : "text-gray-500 hover:text-gray-300"}`}>
+          Active Personnel
         </button>
         <button
-          onClick={() => handleTabChange("pending")}
-          className={`pb-2 px-4 font-medium transition-colors ${
-            activeTab === "pending"
-              ? "text-purple-400 border-b-2 border-purple-400"
-              : "text-gray-400 hover:text-gray-200"
-          }`}>
-          Pending Approvals
+          onClick={() => setSearchParams({ tab: "pending", page: "1" })}
+          className={`pb-3 px-6 font-bold transition-all ${activeTab === "pending" ? "text-blue-400 border-b-2 border-blue-400" : "text-gray-500 hover:text-gray-300"}`}>
+          Pending Clearance
         </button>
       </div>
 
-      {error && (
-        <div className="p-4 mb-6 bg-red-900/50 text-red-200 rounded-lg">
-          {error}
-        </div>
-      )}
-
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+      <div className="bg-gray-900/40 rounded-3xl border border-gray-800/50 overflow-hidden shadow-2xl backdrop-blur-md">
         {loading ? (
-          <div className="p-8 text-center text-gray-400">Loading...</div>
+          <div className="flex justify-center p-20">
+            <Loader2 className="w-10 h-10 text-purple-500 animate-spin" />
+          </div>
         ) : users.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">
-            No users found in this category.
+          <div className="p-20 text-center text-gray-500 font-medium text-lg">
+            No personnel found in this sector.
           </div>
         ) : (
           <table className="w-full text-left text-sm">
-            <thead className="bg-gray-800 text-gray-400">
+            <thead className="bg-gray-950/80 text-gray-400 uppercase text-xs font-black tracking-wider border-b border-gray-800">
               <tr>
-                <th className="p-4">Name</th>
-                <th className="p-4">Username</th>
-                <th className="p-4">Email</th>
-                <th className="p-4">Status</th>
-                <th className="p-4 text-right">Actions</th>
+                <th className="p-5">Identity</th>
+                <th className="p-5">Comms (Email)</th>
+                <th className="p-5">Clearance Status</th>
+                <th className="p-5 text-right">Overrides</th>
               </tr>
             </thead>
-            {/* Keep existing tbody rendering exactly as it is... */}
-            <tbody className="divide-y divide-gray-800 text-gray-300">
+            <tbody className="divide-y divide-gray-800/50">
               {users.map((u) => (
                 <tr
                   key={u.id}
-                  className="hover:bg-gray-800/50 transition-colors">
-                  <td className="p-4 font-medium text-white">{u.name}</td>
-                  <td className="p-4">@{u.username}</td>
-                  <td className="p-4">{u.email}</td>
-                  <td className="p-4">
+                  className="user-row hover:bg-white/2 transition-colors group">
+                  <td className="p-5">
+                    <div className="font-bold text-white text-base">
+                      {u.name}
+                    </div>
+                    <div className="text-gray-500 text-xs">@{u.username}</div>
+                  </td>
+                  <td className="p-5 text-gray-300">{u.email}</td>
+                  <td className="p-5">
                     <span
-                      className={`px-2 py-1 rounded text-xs font-semibold ${u.isActive ? "bg-green-900/50 text-green-400" : "bg-yellow-900/50 text-yellow-400"}`}>
-                      {u.isActive ? "Active" : "Pending/Inactive"}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider border ${u.isActive ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20"}`}>
+                      {u.isActive ? "ACTIVE" : "PENDING"}
                     </span>
                   </td>
-                  <td className="p-4 text-right space-x-4">
-                    <div className="flex justify-end items-center gap-3">
+                  <td className="p-5 text-right">
+                    <div className="flex justify-end gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={() => handleViewClick(u.id)}
-                        className="text-blue-400 hover:text-blue-300 transition-colors"
-                        title="View Details">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="18"
-                          height="18"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round">
-                          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-                          <circle cx="12" cy="12" r="3" />
-                        </svg>
+                        className="p-2 bg-gray-800 hover:bg-gray-700 text-blue-400 rounded-lg transition-colors">
+                        <Eye className="w-4 h-4" />
                       </button>
                       {u.id !== currentUser?.id && (
                         <>
                           <button
-                            onClick={() =>
-                              setConfirmConfig({
-                                isOpen: true,
-                                actionType: "toggleStatus",
-                                userId: u.id,
-                                currentStatus: u.isActive,
-                                title: u.isActive
-                                  ? "Deactivate User"
-                                  : "Approve User",
-                                message: u.isActive
-                                  ? `Are you sure you want to deactivate ${u.name}? They will lose access.`
-                                  : `Are you sure you want to approve ${u.name} as an active Admin?`,
-                              })
-                            }
-                            className={`transition-colors ${u.isActive ? "text-yellow-400 hover:text-yellow-300" : "text-green-400 hover:text-green-300"}`}
-                            title={
-                              u.isActive ? "Deactivate User" : "Approve User"
-                            }>
+                            onClick={() => toggleStatus(u.id, u.isActive)}
+                            className={`p-2 rounded-lg transition-colors border ${u.isActive ? "bg-yellow-900/30 hover:bg-yellow-600/30 text-yellow-400 border-yellow-500/20" : "bg-green-900/30 hover:bg-green-600/30 text-green-400 border-green-500/20"}`}>
                             {u.isActive ? (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10" />
-                                <path d="m4.9 4.9 14.2 14.2" />
-                              </svg>
+                              <Power className="w-4 h-4" />
                             ) : (
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="18"
-                                height="18"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round">
-                                <path d="M20 6 9 17l-5-5" />
-                              </svg>
+                              <UserCheck className="w-4 h-4" />
                             )}
                           </button>
                           <button
-                            onClick={() =>
-                              setConfirmConfig({
-                                isOpen: true,
-                                actionType: "delete",
-                                userId: u.id,
-                                title: "Delete User",
-                                message: `Are you sure you want to permanently delete ${u.name}? This cannot be undone.`,
-                              })
-                            }
-                            className="text-red-400 hover:text-red-300 transition-colors"
-                            title="Delete Admin">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="18"
-                              height="18"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2"
-                              strokeLinecap="round"
-                              strokeLinejoin="round">
-                              <path d="M3 6h18" />
-                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                              <line x1="10" x2="10" y1="11" y2="17" />
-                              <line x1="14" x2="14" y1="11" y2="17" />
-                            </svg>
+                            onClick={() => deleteUser(u.id)}
+                            className="p-2 bg-red-900/30 hover:bg-red-600/30 text-red-400 rounded-lg transition-colors border border-red-500/20">
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </>
-                      )}
-                      {u.id === currentUser?.id && (
-                        <span className="text-gray-500 italic text-xs ml-2">
-                          Current User
-                        </span>
                       )}
                     </div>
                   </td>
@@ -296,177 +197,121 @@ export const AdminManagement = () => {
         )}
       </div>
 
-      {/* Pagination Controls */}
-      {!loading && totalPages > 1 && (
-        <div className="mt-8 flex justify-center items-center gap-2">
-          <button
-            onClick={() => handlePageChange(page - 1)}
-            disabled={page === 1}
-            className="p-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          {getPageNumbers().map((pageNum) => (
+      {totalPages > 1 && (
+        <div className="mt-14 flex justify-center gap-2">
+          {[...Array(totalPages)].map((_, i) => (
             <button
-              key={pageNum}
-              onClick={() => handlePageChange(pageNum)}
-              className={`w-10 h-10 rounded-lg font-medium transition-colors ${pageNum === page ? "bg-blue-600 text-white" : "bg-gray-900 border border-gray-800 text-gray-400 hover:bg-gray-800 hover:text-white"}`}>
-              {pageNum}
+              key={i}
+              onClick={() =>
+                setSearchParams({ tab: activeTab, page: (i + 1).toString() })
+              }
+              className={`w-12 h-12 rounded-2xl font-black text-sm transition-all ${i + 1 === page ? "bg-purple-600 text-white shadow-[0_0_20px_rgba(168,85,247,0.5)] scale-110" : "bg-gray-900/50 border border-gray-800 text-gray-500 hover:bg-gray-800 hover:text-white"}`}>
+              {i + 1}
             </button>
           ))}
-          <button
-            onClick={() => handlePageChange(page + 1)}
-            disabled={page === totalPages}
-            className="p-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
-            <ChevronRight className="w-5 h-5" />
-          </button>
         </div>
       )}
 
-      {/* --- View Modal --- */}
+      {/* Fully Restored & Re-Styled View Modal */}
       {isViewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">Admin Details</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4">
+          <div className="bg-gray-900/90 border border-purple-500/30 rounded-3xl max-w-md w-full p-8 shadow-[0_0_40px_rgba(168,85,247,0.15)] backdrop-blur-xl">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-black text-white">
+                Dossier Details
+              </h2>
               <button
                 onClick={() => setIsViewModalOpen(false)}
-                className="text-gray-400 hover:text-white">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                className="text-gray-500 hover:text-white bg-gray-800/50 hover:bg-gray-700 p-2 rounded-xl transition-colors">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
             {isLoadingDetails ? (
-              <div className="py-8 text-center text-gray-400">
-                Loading details...
+              <div className="py-12 flex justify-center">
+                <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
               </div>
             ) : selectedUser ? (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <span className="block text-xs text-gray-400">Name</span>
+                  <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Designation
+                    </span>
                     <span className="text-white font-medium">
                       {selectedUser.name}
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-xs text-gray-400">
-                      Username
+                  <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Alias
                     </span>
                     <span className="text-white font-medium">
                       @{selectedUser.username}
                     </span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="block text-xs text-gray-400">Email</span>
+                  <div className="col-span-2 bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Comms
+                    </span>
                     <span className="text-white font-medium">
                       {selectedUser.email}
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-xs text-gray-400">Role</span>
-                    <span className="text-purple-400 font-medium">
+                  <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Tier
+                    </span>
+                    <span className="text-purple-400 font-bold">
                       {selectedUser.role}
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-xs text-gray-400">Status</span>
+                  <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Status
+                    </span>
                     <span
                       className={
                         selectedUser.isActive
-                          ? "text-green-400 font-medium"
-                          : "text-yellow-400 font-medium"
+                          ? "text-green-400 font-bold"
+                          : "text-yellow-400 font-bold"
                       }>
-                      {selectedUser.isActive ? "Active" : "Pending"}
+                      {selectedUser.isActive ? "ACTIVE" : "PENDING"}
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-xs text-gray-400">
-                      Games Owned
+                  <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Simulations Owned
                     </span>
-                    <span className="text-white font-medium">
+                    <span className="text-white font-black">
                       {selectedUser.ownedGamesCount}
                     </span>
                   </div>
-                  <div>
-                    <span className="block text-xs text-gray-400">
-                      Reviews Written
+                  <div className="bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Data Logs
                     </span>
-                    <span className="text-white font-medium">
+                    <span className="text-white font-black">
                       {selectedUser.reviewsCount}
                     </span>
                   </div>
-                  <div className="col-span-2">
-                    <span className="block text-xs text-gray-400">Joined</span>
-                    <span className="text-white font-medium">
-                      {new Date(selectedUser.createdAt).toLocaleString()}
+                  <div className="col-span-2 bg-gray-950/50 p-3 rounded-xl border border-gray-800/50">
+                    <span className="block text-[10px] uppercase font-bold text-gray-500 mb-1">
+                      Last Secure Login
                     </span>
-                  </div>
-                  <div className="col-span-2">
-                    <span className="block text-xs text-gray-400">
-                      Last Login
-                    </span>
-                    <span className="text-white font-medium">
+                    <span className="text-gray-300 font-medium">
                       {selectedUser.lastLogin
                         ? new Date(selectedUser.lastLogin).toLocaleString()
-                        : "Never logged in"}
+                        : "Never authenticated"}
                     </span>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-red-400 py-4">Failed to load data.</div>
+              <div className="text-red-400 py-4 font-bold text-center">
+                Failed to decrypt dossier data.
+              </div>
             )}
-
-            <div className="mt-6 flex justify-end">
-              <button
-                onClick={() => setIsViewModalOpen(false)}
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors">
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* --- Confirmation Modal --- */}
-      {confirmConfig.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-gray-900 border border-gray-700 rounded-xl max-w-sm w-full p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-2">
-              {confirmConfig.title}
-            </h2>
-            <p className="text-gray-300 mb-6">{confirmConfig.message}</p>
-            <div className="flex justify-end space-x-3">
-              <button
-                onClick={() =>
-                  setConfirmConfig({ ...confirmConfig, isOpen: false })
-                }
-                className="px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors">
-                Cancel
-              </button>
-              <button
-                onClick={executeConfirmAction}
-                className={`px-4 py-2 text-white rounded-lg transition-colors font-medium ${
-                  confirmConfig.actionType === "delete" ||
-                  confirmConfig.title.includes("Deactivate")
-                    ? "bg-red-600 hover:bg-red-700"
-                    : "bg-green-600 hover:bg-green-700"
-                }`}>
-                Confirm
-              </button>
-            </div>
           </div>
         </div>
       )}
