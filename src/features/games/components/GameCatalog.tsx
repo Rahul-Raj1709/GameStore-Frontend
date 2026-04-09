@@ -9,31 +9,36 @@ import {
   SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { useDebounce } from "@/hooks/useDebounce";
 
 export const GameCatalog = () => {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // 1. Derive current state from the URL so links are shareable
+  // 1. Derive current state from the URL including genreId
   const page = parseInt(searchParams.get("page") || "1", 10);
   const sortBy = searchParams.get("sortBy") || "";
   const desc = searchParams.get("desc") === "true";
   const urlSearch = searchParams.get("search") || "";
+  // Extract genreId from URL
+  const genreId = searchParams.get("genreId")
+    ? parseInt(searchParams.get("genreId")!, 10)
+    : undefined;
 
-  // Local state for search input to prevent typing lag
   const [searchInput, setSearchInput] = useState(urlSearch);
   const debouncedSearch = useDebounce(searchInput, 500);
 
   const pageSize = 12;
 
-  // 2. Fetch data based on URL parameters
+  // 2. Fetch data based on ALL URL parameters including genreId
   const { data, isLoading, isError, isFetching } = useGames({
     page,
     pageSize,
     search: urlSearch || undefined,
     sortBy: sortBy || undefined,
     desc,
+    genreId, // Pass genreId to the API hook
   });
 
   const games = data?.items || [];
@@ -43,27 +48,19 @@ export const GameCatalog = () => {
   useEffect(() => {
     if (debouncedSearch !== urlSearch) {
       const newParams = new URLSearchParams(searchParams);
-      if (debouncedSearch) {
-        newParams.set("search", debouncedSearch);
-      } else {
-        newParams.delete("search");
-      }
-      newParams.set("page", "1"); // Reset to first page on new search
+      if (debouncedSearch) newParams.set("search", debouncedSearch);
+      else newParams.delete("search");
+      newParams.set("page", "1");
       setSearchParams(newParams);
     }
   }, [debouncedSearch, urlSearch, searchParams, setSearchParams]);
 
-  // 4. Handlers for URL updates
   const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const [newSort, newDesc] = e.target.value.split("-");
     const newParams = new URLSearchParams(searchParams);
-
     if (newSort) newParams.set("sortBy", newSort);
     else newParams.delete("sortBy");
-
-    if (newDesc === "true") newParams.set("desc", "true");
-    else newParams.delete("desc");
-
+    newParams.set("desc", newDesc === "true" ? "true" : "false");
     newParams.set("page", "1");
     setSearchParams(newParams);
   };
@@ -73,24 +70,24 @@ export const GameCatalog = () => {
       const newParams = new URLSearchParams(searchParams);
       newParams.set("page", newPage.toString());
       setSearchParams(newParams);
-      window.scrollTo({ top: 0, behavior: "smooth" }); // Scroll to top on page change
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
 
-  // 5. Generate page numbers array (e.g. [1, 2, 3, 4, 5])
+  const clearGenreFilter = () => {
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("genreId");
+    newParams.set("page", "1");
+    setSearchParams(newParams);
+  };
+
   const getPageNumbers = () => {
     const pages = [];
     const maxVisible = 5;
     let start = Math.max(1, page - Math.floor(maxVisible / 2));
     let end = Math.min(totalPages, start + maxVisible - 1);
-
-    if (end - start + 1 < maxVisible) {
-      start = Math.max(1, end - maxVisible + 1);
-    }
-
-    for (let i = start; i <= end; i++) {
-      pages.push(i);
-    }
+    if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+    for (let i = start; i <= end; i++) pages.push(i);
     return pages;
   };
 
@@ -100,6 +97,20 @@ export const GameCatalog = () => {
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Browse Games</h1>
           <p className="text-gray-400">Discover your next favorite title.</p>
+
+          {/* Active Genre Badge */}
+          {genreId && (
+            <div className="mt-3 flex items-center gap-2 px-3 py-1 bg-blue-600/20 border border-blue-500/50 rounded-full w-fit">
+              <span className="text-xs font-medium text-blue-400">
+                Filtering by Genre
+              </span>
+              <button
+                onClick={clearGenreFilter}
+                className="text-blue-400 hover:text-white">
+                <X size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="flex gap-3 w-full md:w-auto">
@@ -137,7 +148,6 @@ export const GameCatalog = () => {
         </div>
       )}
 
-      {/* Adding a slight opacity change when fetching a new page to indicate loading */}
       <div
         className={`grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 transition-opacity duration-200 ${isFetching && !isLoading ? "opacity-60" : "opacity-100"}`}>
         {games.map((game) => (
@@ -159,7 +169,6 @@ export const GameCatalog = () => {
         </div>
       )}
 
-      {/* Standard Numbered Pagination */}
       {totalPages > 1 && (
         <div className="mt-12 flex justify-center items-center gap-2">
           <button
@@ -168,7 +177,6 @@ export const GameCatalog = () => {
             className="p-2 bg-gray-900 border border-gray-800 text-gray-400 rounded-lg hover:bg-gray-800 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
             <ChevronLeft className="w-5 h-5" />
           </button>
-
           {getPageNumbers().map((pageNum) => (
             <button
               key={pageNum}
@@ -181,7 +189,6 @@ export const GameCatalog = () => {
               {pageNum}
             </button>
           ))}
-
           <button
             onClick={() => handlePageChange(page + 1)}
             disabled={page === totalPages}
