@@ -63,8 +63,6 @@ const Navbar = () => {
 // Root Layout wraps the UI, Pages, and Scroll logic
 const RootLayout = () => {
   const location = useLocation();
-
-  // Define paths where the sidebar and navbar should be hidden
   const authPaths = [
     "/login",
     "/register",
@@ -75,11 +73,10 @@ const RootLayout = () => {
 
   return (
     <div className="min-h-screen flex bg-gray-950 text-gray-200">
-      {/* Conditionally render Sidebar */}
+      {/* Sidebar handles its own width transitions */}
       {!isAuthPage && <Sidebar />}
 
-      <div className="flex flex-col flex-1 min-w-0">
-        {/* Conditionally render Navbar */}
+      <div className="flex flex-col flex-1 min-w-0 transition-all duration-300">
         {!isAuthPage && <Navbar />}
 
         <main className={`grow ${!isAuthPage ? "p-6" : ""}`}>
