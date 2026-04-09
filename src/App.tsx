@@ -19,7 +19,7 @@ import { EditGamePage } from "./features/games/components/EditGamePage";
 import { HomePage } from "./pages/HomePage";
 import { PageTransition } from "./components/PageTransition";
 import { Sidebar } from "./components/Sidebar";
-import { Navbar } from "./components/Navbar"; // <-- Imported the new Navbar
+import { Navbar } from "./components/Navbar";
 
 // Import the new List pages
 import { MyListsPage } from "./features/users/components/MyListsPage";
@@ -37,22 +37,26 @@ const RootLayout = () => {
   const isAuthPage = authPaths.includes(location.pathname);
 
   return (
-    // Fixed screen height layout to lock Sidebar and Navbar in place
-    <div className="flex h-screen w-full bg-black text-white overflow-hidden">
-      {/* Sidebar handles its own width transitions */}
-      {!isAuthPage && <Sidebar />}
+    // 1. Main wrapper is now a column (flex-col) to stack Navbar over the Content
+    <div className="flex flex-col h-screen w-full bg-black text-white overflow-hidden">
+      {/* 2. Navbar sits at the very top and spans 100% of the screen width */}
+      {!isAuthPage && <Navbar />}
 
-      <div className="flex flex-col flex-1 min-w-0 transition-all duration-300 relative">
-        {/* Navbar sits at the top of the content area */}
-        {!isAuthPage && <Navbar />}
+      {/* 3. The lower section holds both the Sidebar and the page content */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Sidebar stays fixed on the left, taking up 100% of the remaining height */}
+        {!isAuthPage && <Sidebar />}
 
-        {/* Scrollable page content */}
-        <main className={`grow overflow-y-auto ${!isAuthPage ? "p-6" : ""}`}>
-          <PageTransition>
-            <Outlet />
-          </PageTransition>
-        </main>
-        <ScrollRestoration />
+        {/* Main scrollable content area */}
+        <div className="flex flex-col flex-1 min-w-0 transition-all duration-300">
+          <main
+            className={`grow overflow-y-auto bg-black ${!isAuthPage ? "p-6" : ""}`}>
+            <PageTransition>
+              <Outlet />
+            </PageTransition>
+          </main>
+          <ScrollRestoration />
+        </div>
       </div>
     </div>
   );

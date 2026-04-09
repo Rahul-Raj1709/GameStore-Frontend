@@ -12,7 +12,7 @@ import {
   ChevronDown,
   ChevronRight,
   LayoutGrid,
-  Menu,
+  ChevronLeft,
 } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -73,20 +73,10 @@ export const Sidebar = () => {
   return (
     <aside
       className={`bg-gray-950/80 backdrop-blur-3xl border-r border-white/5 flex flex-col h-full transition-all duration-400 ease-in-out z-40 ${isCollapsed ? "w-20" : "w-64"}`}>
-      {/* Sidebar Toggle Control */}
-      <div
-        className={`p-5 flex items-center border-b border-gray-800/50 ${isCollapsed ? "justify-center" : "justify-end"}`}>
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-2 rounded-xl bg-gray-900 border border-gray-800 hover:bg-gray-800 text-gray-400 hover:text-white transition-colors shrink-0">
-          <Menu size={20} />
-        </button>
-      </div>
-
       {/* Navigation Links */}
       <nav
         ref={navRef}
-        className="flex-1 px-4 space-y-2 mt-4 overflow-y-auto overflow-x-hidden custom-scrollbar">
+        className="flex-1 px-4 pt-6 space-y-2 overflow-y-auto overflow-x-hidden custom-scrollbar">
         {filteredItems.map((item) => {
           const isActive = location.pathname === item.to;
           return (
@@ -119,7 +109,7 @@ export const Sidebar = () => {
                 <LayoutGrid size={20} className="shrink-0 text-blue-500/70" />
                 {!isCollapsed && (
                   <span className="text-[10px] font-black uppercase tracking-widest">
-                    Database Categories
+                    Categories
                   </span>
                 )}
               </div>
@@ -145,6 +135,29 @@ export const Sidebar = () => {
           </div>
         )}
       </nav>
+
+      {/* Sidebar Toggle Control (Moved to Bottom) */}
+      <div className="p-4 border-t border-gray-800/50 mt-auto">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className={`flex items-center w-full p-3 rounded-2xl text-gray-400 hover:text-white hover:bg-white/5 transition-colors group ${isCollapsed ? "justify-center" : "justify-start gap-3"}`}>
+          {isCollapsed ? (
+            <ChevronRight
+              size={20}
+              className="group-hover:scale-110 transition-transform"
+            />
+          ) : (
+            <ChevronLeft
+              size={20}
+              className="group-hover:-translate-x-1 transition-transform"
+            />
+          )}
+
+          {!isCollapsed && (
+            <span className="font-bold text-sm tracking-wide">Collapse</span>
+          )}
+        </button>
+      </div>
     </aside>
   );
 };

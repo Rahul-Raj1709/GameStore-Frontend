@@ -52,7 +52,7 @@ export const Navbar = () => {
           <Gamepad2 className="text-blue-400 shrink-0" size={24} />
         </div>
         <span className="tracking-tight bg-clip-text text-transparent bg-linear-to-r from-white to-gray-400">
-          NEXUS
+          GameStore
         </span>
       </Link>
 
@@ -101,7 +101,7 @@ export const Navbar = () => {
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
                   <ShieldAlert size={16} className="text-gray-500" />
-                  View Dossier (Profile)
+                  View Profile (Profile)
                 </button>
 
                 <div className="h-px bg-gray-800/50 my-2 mx-4" />
