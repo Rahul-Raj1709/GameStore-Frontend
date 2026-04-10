@@ -34,7 +34,7 @@ export const GameDetailsPage = () => {
   const { user } = useAuth();
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const hasAnimated = useRef(false); // Add ref to track initial animation
+  const hasAnimated = useRef(false);
 
   const from = location.state?.from || "Catalog";
   const listName = location.state?.listName || "";
@@ -55,7 +55,6 @@ export const GameDetailsPage = () => {
   const isCustomer = user?.role === Roles.Customer;
 
   useGSAP(() => {
-    // Only animate if we have data, it's not loading, and we HAVEN'T animated yet.
     if (game && !isLoading && !hasAnimated.current) {
       hasAnimated.current = true;
       gsap.fromTo(
@@ -64,7 +63,7 @@ export const GameDetailsPage = () => {
         { y: 0, opacity: 1, stagger: 0.1, duration: 0.8, ease: "power3.out" },
       );
     }
-  }, [game?.id, isLoading]); // Depend on ID, not the whole object, to prevent re-triggering on updates
+  }, [game?.id, isLoading]);
 
   const { data: likedGames } = useQuery({
     queryKey: ["likedGames"],
@@ -83,7 +82,6 @@ export const GameDetailsPage = () => {
   const likeMutation = useMutation({
     mutationFn: () => gamesService.toggleLike(gameId),
     onSuccess: () => {
-      // Invalidate to fetch new like count and status, UI will update seamlessly now without flashing animations
       queryClient.invalidateQueries({ queryKey: ["likedGames"] });
       queryClient.invalidateQueries({ queryKey: ["game", gameId] });
     },
@@ -182,7 +180,6 @@ export const GameDetailsPage = () => {
           </div>
 
           <div className="lg:col-span-8 pt-2 lg:pt-10 fade-up">
-            {/* Added relative z-40 here to establish a higher stacking context for the dropdown */}
             <div className="flex flex-col sm:flex-row justify-between items-start mb-8 gap-6 relative z-40">
               <div>
                 <h1 className="text-5xl md:text-6xl font-black text-white tracking-tight mb-4 drop-shadow-lg">
@@ -199,7 +196,6 @@ export const GameDetailsPage = () => {
                 </div>
               </div>
 
-              {/* Only Customers see Like/Save */}
               {isCustomer && (
                 <div className="flex gap-2 bg-gray-900/40 backdrop-blur-md p-2 rounded-2xl border border-gray-800/50">
                   <div className="relative">
@@ -271,12 +267,9 @@ export const GameDetailsPage = () => {
               </div>
             </div>
 
-            {/* Hide Reviews from Admins completely */}
-            {isCustomer && (
-              <div className="fade-up relative z-10">
-                <GameReviews gameId={game.id} />
-              </div>
-            )}
+            <div className="fade-up relative z-10">
+              <GameReviews gameId={game.id} gameOwnerName={game.ownerName} />
+            </div>
           </div>
         </div>
       </div>
