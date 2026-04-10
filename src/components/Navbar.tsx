@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/features/auth/context/AuthContext";
+import { useUserProfile } from "@/features/users/api/useUserProfile";
 import { Gamepad2, User, LogOut, ChevronDown, ShieldAlert } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 
 export const Navbar = () => {
   const { user, isAuthenticated, logout } = useAuth();
+  const { data: profile } = useUserProfile(); // Fetch the extended profile data
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -64,11 +66,18 @@ export const Navbar = () => {
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-3 p-2 pr-4 rounded-2xl bg-gray-900/50 border border-gray-800 hover:bg-gray-800 transition-colors group">
               <div className="w-8 h-8 rounded-xl bg-linear-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-inner">
-                <User size={16} className="text-white" />
+                {/* Dynamically show first letter of the name if available, otherwise User icon */}
+                {profile?.name ? (
+                  <span className="text-white font-bold text-sm">
+                    {profile.name.charAt(0).toUpperCase()}
+                  </span>
+                ) : (
+                  <User size={16} className="text-white" />
+                )}
               </div>
               <div className="flex flex-col items-start sm:flex">
                 <span className="text-sm font-bold text-white leading-none">
-                  {user.username}
+                  {profile?.name || user.username}
                 </span>
                 <span className="text-[10px] text-blue-400 font-black uppercase tracking-widest mt-1 leading-none">
                   {user.role}
@@ -87,7 +96,7 @@ export const Navbar = () => {
                 className="absolute right-0 mt-3 w-56 bg-gray-900/95 backdrop-blur-xl border border-gray-800 rounded-2xl shadow-2xl overflow-hidden py-2">
                 <div className="px-4 py-3 border-b border-gray-800/50 mb-2 sm:hidden">
                   <span className="block text-sm font-bold text-white">
-                    {user.username}
+                    {profile?.name || user.username}
                   </span>
                   <span className="block text-xs text-blue-400 font-black uppercase mt-1">
                     {user.role}
@@ -101,7 +110,7 @@ export const Navbar = () => {
                   }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-bold text-gray-300 hover:text-white hover:bg-white/5 transition-colors">
                   <ShieldAlert size={16} className="text-gray-500" />
-                  View Profile (Profile)
+                  View Profile
                 </button>
 
                 <div className="h-px bg-gray-800/50 my-2 mx-4" />

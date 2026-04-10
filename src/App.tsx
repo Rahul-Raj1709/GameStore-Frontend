@@ -21,9 +21,10 @@ import { PageTransition } from "./components/PageTransition";
 import { Sidebar } from "./components/Sidebar";
 import { Navbar } from "./components/Navbar";
 
-// Import the new List pages
+// Import the List and Profile pages
 import { MyListsPage } from "./features/users/components/MyListsPage";
 import { CustomListDetailsPage } from "./features/users/components/CustomListDetailsPage";
+import { ProfilePage } from "./features/users/components/ProfilePage";
 
 // Root Layout wraps the UI, Pages, and Scroll logic
 const RootLayout = () => {
@@ -80,6 +81,11 @@ const router = createBrowserRouter([
           { path: "/forgot-password", element: <ForgotPassword /> },
           { path: "/reset-password", element: <ResetPassword /> },
         ],
+      },
+      // NEW: Profile route accessible to all authenticated users (no allowedRoles restriction)
+      {
+        element: <ProtectedRoute />,
+        children: [{ path: "/profile", element: <ProfilePage /> }],
       },
       {
         element: (
