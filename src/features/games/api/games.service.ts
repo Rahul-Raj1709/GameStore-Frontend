@@ -23,7 +23,6 @@ export const gamesService = {
     return response.data;
   },
 
-  // Updated to use standard offset-limit pagination
   getMyGames: async (
     page: number = 1,
     pageSize: number = 20,
@@ -81,6 +80,7 @@ export const gamesService = {
     return response.data;
   },
 
+  // UPDATED: No longer requires gameId in the URL path
   updateReview: async (
     reviewId: number,
     payload: ReviewPayload,
@@ -88,6 +88,7 @@ export const gamesService = {
     await api.put(`/games/reviews/${reviewId}`, payload);
   },
 
+  // UPDATED: No longer requires gameId in the URL path
   deleteReview: async (reviewId: number): Promise<void> => {
     await api.delete(`/games/reviews/${reviewId}`);
   },
