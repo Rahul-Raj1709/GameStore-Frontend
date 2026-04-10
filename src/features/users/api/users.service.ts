@@ -35,6 +35,22 @@ export const usersService = {
     return response.data;
   },
 
+  updateProfile: async (data: { name: string }): Promise<void> => {
+    await api.put("/users/me", data);
+  },
+
+  changePassword: async (data: {
+    currentPassword: string;
+    newPassword: string;
+  }): Promise<void> => {
+    await api.put("/users/me/password", data);
+  },
+
+  getCurrentUserProfile: async (): Promise<UserDetailsDto> => {
+    const response = await api.get<UserDetailsDto>("/users/me");
+    return response.data;
+  },
+
   updateUserStatus: async (id: number, isActive: boolean): Promise<void> => {
     await api.put(`/users/admin/${id}/status`, isActive, {
       headers: { "Content-Type": "application/json" },
